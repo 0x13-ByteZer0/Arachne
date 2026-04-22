@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arachne — Web Application Attack Matrix</title>
+  <meta name="description" content="Knowledge base of adversary tactics and techniques targeting web applications. Inspired by MITRE ATT&CK." />
+  <meta property="og:title" content="Arachne — Web Application Attack Matrix" />
+  <meta property="og:description" content="Táticas e técnicas de ataque a aplicações web, organizadas em uma matriz interativa." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #18181f;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --text: #e8e8f0;
+      --text2: #8888a0;
+      --text3: #44445a;
+      --accent: #7c5cfc;
+      --accent2: #a78bfa;
+      --red: #f87171;
+      --orange: #fb923c;
+      --yellow: #fbbf24;
+      --green: #4ade80;
+      --blue: #60a5fa;
+      --mono: 'Space Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 56px;
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 0.5px solid var(--border);
+    }
+    .nav-logo {
+      font-family: var(--mono); font-size: 15px; font-weight: 700;
+      color: var(--text); text-decoration: none; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo .spider { color: var(--accent2); }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a {
+      font-size: 13px; color: var(--text2); text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-badge {
+      font-family: var(--mono); font-size: 10px;
+      padding: 2px 8px; border-radius: 2px;
+      background: rgba(124,92,252,0.15); color: var(--accent2);
+      border: 0.5px solid rgba(124,92,252,0.3);
+    }
+
+    /* HERO */
+    .hero {
+      padding: 5rem 2rem 3rem;
+      border-bottom: 0.5px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(124,92,252,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-family: var(--mono); font-size: 11px; color: var(--accent2);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 600;
+      line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1rem;
+      max-width: 700px;
+    }
+    .hero h1 span { color: var(--accent2); }
+    .hero p {
+      font-size: 15px; color: var(--text2); max-width: 560px; line-height: 1.8;
+      margin-bottom: 2rem;
+    }
+    .hero-stats {
+      display: flex; gap: 2rem; flex-wrap: wrap;
+    }
+    .stat { }
+    .stat-num { font-family: var(--mono); font-size: 22px; color: var(--text); }
+    .stat-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+    /* TOOLBAR */
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 2rem; border-bottom: 0.5px solid var(--border);
+      gap: 1rem; flex-wrap: wrap;
+    }
+    .toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .chip {
+      font-size: 12px; padding: 4px 12px;
+      border: 0.5px solid var(--border2); border-radius: 2px;
+      background: transparent; color: var(--text2); cursor: pointer;
+      font-family: var(--sans); transition: all 0.15s;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--text); }
+    .chip.active { background: rgba(124,92,252,0.15); border-color: rgba(124,92,252,0.4); color: var(--accent2); }
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      background: var(--bg2); border: 0.5px solid var(--border2);
+      border-radius: 2px; color: var(--text); font-family: var(--sans);
+      font-size: 12px; padding: 5px 12px 5px 32px; width: 200px;
+      outline: none; transition: border-color 0.15s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--text3); }
+    .search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--text3); font-size: 12px; pointer-events: none;
+    }
+
+    /* LEGEND */
+    .legend {
+      display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+      padding: 0.5rem 2rem; border-bottom: 0.5px solid var(--border);
+    }
+    .legend-label { font-size: 11px; color: var(--text3); }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+    .sev-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* MATRIX */
+    .matrix-container { overflow-x: auto; padding: 1.5rem 2rem 3rem; }
+    .matrix-grid { display: flex; gap: 8px; min-width: max-content; align-items: flex-start; }
+    .tactic-col { width: 160px; flex-shrink: 0; }
+    .tactic-header {
+      padding: 10px 12px; margin-bottom: 6px;
+      border-top: 2px solid var(--tactic-color, var(--accent));
+      background: var(--bg2);
+    }
+    .tactic-name {
+      font-family: var(--mono); font-size: 11px; color: var(--text);
+      font-weight: 700; letter-spacing: 0.02em;
+    }
+    .tactic-id { font-size: 10px; color: var(--text3); margin-top: 2px; }
+    .tactic-count { font-size: 10px; color: var(--text2); margin-top: 4px; }
+
+    .tech-list { display: flex; flex-direction: column; gap: 4px; }
+    .tech-card {
+      background: var(--bg2); border: 0.5px solid var(--border);
+      border-left: 2px solid var(--sev-color, var(--border));
+      padding: 8px 10px; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .tech-card:hover { background: var(--bg3); border-color: var(--sev-color); }
+    .tech-card.dimmed { opacity: 0.25; }
+    .tech-card.highlighted { border-color: var(--sev-color) !important; background: var(--bg3) !important; opacity: 1 !important; }
+    .tech-id { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+    .tech-name { font-size: 11px; color: var(--text); margin-top: 2px; line-height: 1.4; }
+    .sub-toggle { font-size: 10px; color: var(--text3); margin-top: 4px; cursor: pointer; }
+
+    .sub-list { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+    .sub-item {
+      font-size: 10px; padding: 4px 8px;
+      background: var(--bg3); color: var(--text2);
+      border-left: 1px solid var(--border2); cursor: pointer;
+      transition: color 0.12s;
+    }
+    .sub-item:hover { color: var(--text); }
+
+    /* DETAIL PANEL */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 98;
+    }
+    .overlay.open { display: block; }
+    .detail-panel {
+      position: fixed; top: 0; right: 0; width: 380px; height: 100vh;
+      background: var(--bg2); border-left: 0.5px solid var(--border2);
+      padding: 2rem 1.5rem; overflow-y: auto; z-index: 99;
+      transform: translateX(100%); transition: transform 0.2s ease;
+    }
+    .detail-panel.open { transform: translateX(0); }
+    .panel-close {
+      position: absolute; top: 1.5rem; right: 1.5rem;
+      background: none; border: none; color: var(--text2); cursor: pointer;
+      font-size: 18px; transition: color 0.12s;
+    }
+    .panel-close:hover { color: var(--text); }
+    .panel-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+    .panel-title { font-size: 20px; font-weight: 600; margin: 8px 0; line-height: 1.3; }
+    .panel-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .badge {
+      font-size: 10px; padding: 3px 8px;
+      border: 0.5px solid currentColor; border-radius: 2px;
+      font-family: var(--mono); letter-spacing: 0.04em;
+    }
+    .panel-section { margin-top: 1.5rem; }
+    .panel-section-title {
+      font-family: var(--mono); font-size: 10px; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem;
+    }
+    .panel-desc { font-size: 13px; color: var(--text2); line-height: 1.8; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 11px; padding: 4px 10px;
+      background: var(--bg3); color: var(--text2);
+      border: 0.5px solid var(--border);
+    }
+    .tag.green { color: var(--green); border-color: rgba(74,222,128,0.2); background: rgba(74,222,128,0.06); }
+    .tag.blue { color: var(--blue); border-color: rgba(96,165,250,0.2); background: rgba(96,165,250,0.06); }
+    .sev-meter { display: flex; gap: 4px; align-items: center; margin-top: 6px; }
+    .sev-bar {
+      height: 4px; flex: 1; background: var(--bg3);
+      position: relative; overflow: hidden;
+    }
+    .sev-fill { height: 100%; transition: width 0.3s; }
+    .panel-action {
+      display: block; width: 100%; margin-top: 2rem;
+      padding: 10px; background: rgba(124,92,252,0.1);
+      border: 0.5px solid rgba(124,92,252,0.3); color: var(--accent2);
+      font-family: var(--sans); font-size: 13px; cursor: pointer;
+      transition: background 0.15s; text-align: center; text-decoration: none;
+    }
+    .panel-action:hover { background: rgba(124,92,252,0.2); }
+
+    /* FOOTER */
+    footer {
+      border-top: 0.5px solid var(--border); padding: 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    footer p { font-size: 12px; color: var(--text3); }
+    footer a { color: var(--text2); text-decoration: none; font-size: 12px; }
+    footer a:hover { color: var(--text); }
+    .footer-links { display: flex; gap: 1.5rem; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .hero { padding: 3rem 1rem 2rem; }
+      .toolbar { padding: 0.75rem 1rem; }
+      .matrix-container { padding: 1rem 1rem 3rem; }
+      .detail-panel { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="spider">⬡</span> Arachne
+  </a>
+  <div class="nav-links">
+    <span class="nav-badge">v0.1.0</span>
+    <a href="https://github.com/SEU_USUARIO/arachne" target="_blank">GitHub</a>
+    <a href="https://github.com/SEU_USUARIO/arachne/blob/main/CONTRIBUTING.md" target="_blank">Contribuir</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <p class="hero-eyebrow">Knowledge Base</p>
+  <h1>Web Application<br /><span>Attack Matrix</span></h1>
+  <p>Base de conhecimento de táticas e técnicas adversárias voltadas a aplicações web. Inspirada no MITRE ATT&amp;CK, focada no universo web.</p>
+  <div class="hero-stats" id="hero-stats"></div>
+</section>
+
+<div class="toolbar">
+  <div class="toolbar-left">
+    <button class="chip active" id="btn-subs" onclick="toggleSubs()">Sub-técnicas</button>
+    <button class="chip" onclick="filterSeverity(4)" id="f4">Crítico</button>
+    <button class="chip" onclick="filterSeverity(3)" id="f3">Alto</button>
+    <button class="chip" onclick="filterSeverity(2)" id="f2">Médio</button>
+    <button class="chip" onclick="filterSeverity(0)" id="f0">Todos</button>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" placeholder="Buscar técnica..." id="search-input" oninput="doSearch(this.value)" />
+  </div>
+</div>
+
+<div class="legend">
+  <span class="legend-label">Severidade:</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#f87171"></span>Crítica</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#fb923c"></span>Alta</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#fbbf24"></span>Média</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#60a5fa"></span>Baixa</span>
+</div>
+
+<div class="matrix-container">
+  <div class="matrix-grid" id="matrix-grid"></div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="detail-panel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div id="panel-content"></div>
+</div>
+
+<footer>
+  <p>Arachne © 2025 — Licenciado sob MIT (código) e CC BY 4.0 (conteúdo)</p>
+  <div class="footer-links">
+    <a href="https://github.com/SEU_USUARIO/arachne" target="_blank">GitHub</a>
+    <a href="https://github.com/SEU_USUARIO/arachne/blob/main/CONTRIBUTING.md" target="_blank">Contribuir</a>
+    <a href="https://owasp.org" target="_blank">OWASP</a>
+  </div>
+</footer>
+
+<script src="data/techniques.js"></script>
+<script>
+const SEV_COLOR = { 4:'#f87171', 3:'#fb923c', 2:'#fbbf24', 1:'#60a5fa' };
+const SEV_LABEL = { 4:'Crítica', 3:'Alta', 2:'Média', 1:'Baixa' };
+
+let showSubs = true;
+let currentFilter = 0;
+let currentSearch = '';
+
+function toggleSubs() {
+  showSubs = !showSubs;
+  document.getElementById('btn-subs').classList.toggle('active', showSubs);
+  renderMatrix();
+}
+
+function filterSeverity(n) {
+  currentFilter = n;
+  [0,2,3,4].forEach(i => document.getElementById('f'+i)?.classList.remove('active'));
+  document.getElementById('f'+n)?.classList.add('active');
+  renderMatrix();
+}
+
+function doSearch(val) {
+  currentSearch = val.toLowerCase();
+  renderMatrix();
+}
+
+function matches(tech) {
+  if (currentFilter && tech.severity !== currentFilter) return false;
+  if (currentSearch) {
+    const haystack = (tech.name + tech.desc + (tech.subs||[]).join(' ')).toLowerCase();
+    if (!haystack.includes(currentSearch)) return false;
+  }
+  return true;
+}
+
+function renderMatrix() {
+  const grid = document.getElementById('matrix-grid');
+  grid.innerHTML = '';
+  tactics.forEach(tactic => {
+    const col = document.createElement('div');
+    col.className = 'tactic-col';
+    col.innerHTML = `
+      <div class="tactic-header" style="--tactic-color:${tactic.color}">
+        <div class="tactic-name">${tactic.name}</div>
+        <div class="tactic-id">${tactic.id}</div>
+        <div class="tactic-count">${tactic.techniques.length} técnicas</div>
+      </div>
+      <div class="tech-list"></div>`;
+    const list = col.querySelector('.tech-list');
+    tactic.techniques.forEach(tech => {
+      const matched = matches(tech);
+      const card = document.createElement('div');
+      card.className = 'tech-card' + (currentSearch || currentFilter ? (matched ? ' highlighted' : ' dimmed') : '');
+      card.style.setProperty('--sev-color', SEV_COLOR[tech.severity]);
+      card.innerHTML = `
+        <div class="tech-id">${tech.id}</div>
+        <div class="tech-name">${tech.name}</div>
+        ${showSubs && tech.subs ? `<div class="sub-toggle">${tech.subs.length} sub-técnicas</div>` : ''}`;
+      card.onclick = () => openPanel(tech, tactic);
+      list.appendChild(card);
+      if (showSubs && tech.subs) {
+        const subList = document.createElement('div');
+        subList.className = 'sub-list';
+        tech.subs.forEach(s => {
+          const si = document.createElement('div');
+          si.className = 'sub-item';
+          si.textContent = '↳ ' + s;
+          si.onclick = (e) => { e.stopPropagation(); openPanel(tech, tactic, s); };
+          subList.appendChild(si);
+        });
+        list.appendChild(subList);
+      }
+    });
+    grid.appendChild(col);
+  });
+}
+
+function openPanel(tech, tactic, sub) {
+  const sc = SEV_COLOR[tech.severity];
+  const sl = SEV_LABEL[tech.severity];
+  document.getElementById('panel-content').innerHTML = `
+    <div class="panel-id">${tech.id}${sub ? ' › ' + sub : ''}</div>
+    <div class="panel-title">${sub || tech.name}</div>
+    <div class="panel-badges">
+      <span class="badge" style="color:${tactic.color};border-color:${tactic.color}44">${tactic.name}</span>
+      <span class="badge" style="color:${sc};border-color:${sc}44">${sl}</span>
+    </div>
+    <div class="panel-desc">${tech.desc}</div>
+    ${tech.subs ? `<div class="panel-section">
+      <div class="panel-section-title">Sub-técnicas</div>
+      <div class="tag-list">${tech.subs.map(s=>`<span class="tag">${s}</span>`).join('')}</div>
+    </div>` : ''}
+    <div class="panel-section">
+      <div class="panel-section-title">Mitigações</div>
+      <div class="tag-list">${tech.mitigations.map(m=>`<span class="tag green">${m}</span>`).join('')}</div>
+    </div>
+    ${tech.references.length ? `<div class="panel-section">
+      <div class="panel-section-title">Referências</div>
+      <div class="tag-list">${tech.references.map(r=>`<span class="tag blue">${r}</span>`).join('')}</div>
+    </div>` : ''}
+    <div class="panel-section">
+      <div class="panel-section-title">Severidade — ${sl}</div>
+      <div class="sev-meter">
+        ${[1,2,3,4].map(i=>`<div class="sev-bar"><div class="sev-fill" style="width:${i<=tech.severity?100:0}%;background:${sc}"></div></div>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// Stats
+const totalTechs = tactics.reduce((a,t)=>a+t.techniques.length,0);
+const totalSubs = tactics.reduce((a,t)=>a+t.techniques.reduce((b,tc)=>b+(tc.subs?.length||0),0),0);
+document.getElementById('hero-stats').innerHTML = `
+  <div class="stat"><div class="stat-num">${tactics.length}</div><div class="stat-label">Táticas</div></div>
+  <div class="stat"><div class="stat-num">${totalTechs}</div><div class="stat-label">Técnicas</div></div>
+  <div class="stat"><div class="stat-num">${totalSubs}</div><div class="stat-label">Sub-técnicas</div></div>`;
+
+renderMatrix();
+</script>
+</body>
+</html>
