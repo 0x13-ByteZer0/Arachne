@@ -83,7 +83,16 @@ const tactics = [
         desc: "Inserção de código SQL malicioso em entradas de usuário para manipular, exfiltrar ou destruir dados do banco. É uma das vulnerabilidades mais críticas e prevalentes em aplicações web.",
         severity: 4,
         mitigations: ["Prepared statements", "ORMs com binding", "WAF", "Princípio do menor privilégio no DB"],
-        references: ["CWE-89", "OWASP A3", "OWASP Top 10"]
+        references: ["CWE-89", "OWASP A3", "OWASP Top 10"],
+        example: `// VULNERÁVEL
+const user = req.body.username;
+db.query("SELECT * FROM users WHERE email = '" + user + "'");
+
+// Input: ' OR '1'='1
+// Query resultante: SELECT * FROM users WHERE email = '' OR '1'='1'
+
+// SEGURO - Prepared Statement
+db.query("SELECT * FROM users WHERE email = ?", [user]);`
       },
       {
         id: "W008",
@@ -92,7 +101,20 @@ const tactics = [
         desc: "Injeção de scripts maliciosos em páginas web para roubo de sessão, defacement, keylogging ou redirecionamento de usuários. Stored XSS persiste no banco e afeta múltiplos usuários.",
         severity: 3,
         mitigations: ["Content Security Policy (CSP)", "Output encoding contextual", "HttpOnly cookies", "DOMPurify"],
-        references: ["CWE-79", "OWASP A3"]
+        references: ["CWE-79", "OWASP A3"],
+        example: `// VULNERÁVEL - Stored XSS
+app.post('/comment', (req, res) => {
+  db.save({ content: req.body.comment }); // Sem sanitizar
+  res.render('post', { comment: req.body.comment });
+});
+
+// SEGURO
+const DOMPurify = require('isomorphic-dompurify');
+app.post('/comment', (req, res) => {
+  const clean = DOMPurify.sanitize(req.body.comment);
+  db.save({ content: clean });
+  res.render('post', { comment: clean });
+});`
       },
       {
         id: "W009",
@@ -101,7 +123,20 @@ const tactics = [
         desc: "Execução de comandos do sistema operacional ou outros interpreters (LDAP, XPath) via entrada de usuário não sanitizada que é passada diretamente para chamadas de sistema.",
         severity: 4,
         mitigations: ["Evitar exec de comandos com input de usuário", "Validação e allowlist rigorosa", "Containerização"],
-        references: ["CWE-78", "CWE-90"]
+        references: ["CWE-78", "CWE-90"],
+        example: `// VULNERÁVEL
+const { exec } = require('child_process');
+app.get('/ping', (req, res) => {
+  exec('ping -c 1 ' + req.query.host);
+  // Input: "8.8.8.8 && rm -rf /" → executa comando malicioso
+});
+
+// SEGURO - usar array argv e child_process.execFile
+const { execFile } = require('child_process');
+app.get('/ping', (req, res) => {
+  execFile('ping', ['-c', '1', req.query.host]);
+  // Parâmetros separados = sem risco de injeção
+});`
       },
       {
         id: "W010",
@@ -160,7 +195,21 @@ const tactics = [
         desc: "Acesso não autorizado a recursos pertencentes a outros usuários pela manipulação de identificadores previsíveis em parâmetros de URL, body ou headers.",
         severity: 3,
         mitigations: ["Verificação de ownership server-side", "UUIDs v4 aleatórios", "Indirect reference maps", "Logs de acesso"],
-        references: ["OWASP A5", "CWE-639"]
+        references: ["OWASP A5", "CWE-639"],
+        example: `// VULNERÁVEL - Sem verificar ownership
+app.get('/api/documents/:id', (req, res) => {
+  const doc = db.findById(req.params.id);
+  res.json(doc); // Qualquer user consegue acessar doc de qualquer outro
+});
+
+// SEGURO - Verificar que o documento pertence ao usuário
+app.get('/api/documents/:id', (req, res) => {
+  const doc = db.findById(req.params.id);
+  if (!doc || doc.userId !== req.user.id) {
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+  res.json(doc);
+});`
       },
       {
         id: "W015",

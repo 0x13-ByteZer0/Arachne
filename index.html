@@ -134,6 +134,7 @@
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
       color: var(--text3); font-size: 12px; pointer-events: none;
     }
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
     /* LEGEND */
     .legend {
@@ -250,12 +251,45 @@
     footer a:hover { color: var(--text); }
     .footer-links { display: flex; gap: 1.5rem; }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
       nav { padding: 0 1rem; }
       .hero { padding: 3rem 1rem 2rem; }
-      .toolbar { padding: 0.75rem 1rem; }
+      .hero h1 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+      .toolbar { padding: 0.75rem 1rem; flex-direction: column; gap: 1rem; }
+      .toolbar-left { flex-direction: column; gap: 0.75rem; width: 100%; }
+      .toolbar-left > div { border-left: none !important; padding-left: 0 !important; margin-left: 0 !important; width: 100%; }
+      .search-wrap { width: 100%; }
+      .search-wrap input { width: 100%; }
       .matrix-container { padding: 1rem 1rem 3rem; }
+      .tactic-col { width: 140px; }
+      .legend { flex-wrap: wrap; font-size: 11px; }
+      #heatmap-container { padding: 1rem; }
+      #severity-heatmap { gap: 4px; }
+      #severity-heatmap > div { min-width: 100px; padding: 8px; }
       .detail-panel { width: 100%; }
+      footer { flex-direction: column; }
+    }
+    
+    @media (max-width: 480px) {
+      nav { padding: 0 0.75rem; }
+      .hero { padding: 2rem 0.75rem 1.5rem; }
+      .hero h1 { font-size: clamp(1.25rem, 3vw, 2rem); }
+      .hero p { font-size: 13px; }
+      .toolbar { padding: 0.5rem 0.75rem; }
+      .toolbar-left { gap: 0.5rem; }
+      .chip { font-size: 11px; padding: 3px 8px; }
+      .hero-stats { gap: 1rem; }
+      .stat-num { font-size: 18px; }
+      .stat-label { font-size: 10px; }
+      .matrix-container { padding: 0.75rem; overflow-x: auto; }
+      .tactic-col { width: 130px; }
+      .tech-card { padding: 6px 8px; }
+      .tech-id { font-size: 8px; }
+      .tech-name { font-size: 10px; }
+      .legend { font-size: 10px; padding: 0.5rem 0.75rem; }
+      #heatmap-container { padding: 0.75rem; }
+      #severity-heatmap > div { min-width: 90px; padding: 6px; font-size: 10px; }
+      footer { font-size: 11px; padding: 1rem 0.75rem; }
     }
   </style>
 </head>
@@ -282,10 +316,17 @@
 <div class="toolbar">
   <div class="toolbar-left">
     <button class="chip active" id="btn-subs" onclick="toggleSubs()">Sub-técnicas</button>
-    <button class="chip" onclick="filterSeverity(4)" id="f4">Crítico</button>
-    <button class="chip" onclick="filterSeverity(3)" id="f3">Alto</button>
-    <button class="chip" onclick="filterSeverity(2)" id="f2">Médio</button>
-    <button class="chip" onclick="filterSeverity(0)" id="f0">Todos</button>
+    <div class="filter-group" style="border-left: 0.5px solid var(--border); padding-left: 1rem; margin-left: 1rem;">
+      <button class="chip" onclick="filterTactic('all')" id="ftactic-all" style="background:rgba(124,92,252,0.15);border-color:rgba(124,92,252,0.4);color:var(--accent2)">Todas as táticas</button>
+      <span id="tactic-filter-buttons"></span>
+    </div>
+    <div style="border-left: 0.5px solid var(--border); padding-left: 1rem; margin-left: 1rem;">
+      <button class="chip" onclick="filterSeverity(4)" id="f4">Crítico</button>
+      <button class="chip" onclick="filterSeverity(3)" id="f3">Alto</button>
+      <button class="chip" onclick="filterSeverity(2)" id="f2">Médio</button>
+      <button class="chip" onclick="filterSeverity(1)" id="f1">Baixo</button>
+      <button class="chip" onclick="filterSeverity(0)" id="f0">Todos</button>
+    </div>
   </div>
   <div class="search-wrap">
     <span class="search-icon">⌕</span>
@@ -299,6 +340,13 @@
   <span class="legend-item"><span class="sev-dot" style="background:#fb923c"></span>Alta</span>
   <span class="legend-item"><span class="sev-dot" style="background:#fbbf24"></span>Média</span>
   <span class="legend-item"><span class="sev-dot" style="background:#60a5fa"></span>Baixa</span>
+</div>
+
+<div id="heatmap-container" style="padding: 1.5rem 2rem; border-bottom: 0.5px solid var(--border);">
+  <div style="margin-bottom: 1rem;">
+    <div style="font-family: var(--mono); font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem;">Mapa de Severidade por Tática</div>
+    <div id="severity-heatmap" style="display: flex; gap: 2px; flex-wrap: wrap;"></div>
+  </div>
 </div>
 
 <div class="matrix-container">
@@ -327,6 +375,7 @@ const SEV_LABEL = { 4:'Crítica', 3:'Alta', 2:'Média', 1:'Baixa' };
 
 let showSubs = true;
 let currentFilter = 0;
+let currentTacticFilter = 'all';
 let currentSearch = '';
 
 function toggleSubs() {
@@ -337,8 +386,15 @@ function toggleSubs() {
 
 function filterSeverity(n) {
   currentFilter = n;
-  [0,2,3,4].forEach(i => document.getElementById('f'+i)?.classList.remove('active'));
+  [0,1,2,3,4].forEach(i => document.getElementById('f'+i)?.classList.remove('active'));
   document.getElementById('f'+n)?.classList.add('active');
+  renderMatrix();
+}
+
+function filterTactic(tacticId) {
+  currentTacticFilter = tacticId;
+  document.querySelectorAll('[id^="ftactic-"]').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('ftactic-' + tacticId)?.classList.add('active');
   renderMatrix();
 }
 
@@ -347,7 +403,8 @@ function doSearch(val) {
   renderMatrix();
 }
 
-function matches(tech) {
+function matches(tech, tacticId) {
+  if (currentTacticFilter !== 'all' && currentTacticFilter !== tacticId) return false;
   if (currentFilter && tech.severity !== currentFilter) return false;
   if (currentSearch) {
     const haystack = (tech.name + tech.desc + (tech.subs||[]).join(' ')).toLowerCase();
@@ -357,6 +414,22 @@ function matches(tech) {
 }
 
 function renderMatrix() {
+  // Create tactic filter buttons dynamically
+  const tacticFilterContainer = document.getElementById('tactic-filter-buttons');
+  if (tacticFilterContainer && !tacticFilterContainer.hasChildNodes()) {
+    tactics.forEach(tactic => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.id = 'ftactic-' + tactic.id;
+      btn.style.color = tactic.color;
+      btn.style.borderColor = tactic.color + '44';
+      btn.textContent = tactic.name;
+      btn.onclick = () => filterTactic(tactic.id);
+      tacticFilterContainer.appendChild(btn);
+    });
+  }
+
+  const isFiltering = currentSearch || currentFilter || currentTacticFilter !== 'all';
   const grid = document.getElementById('matrix-grid');
   grid.innerHTML = '';
   tactics.forEach(tactic => {
@@ -370,16 +443,26 @@ function renderMatrix() {
       </div>
       <div class="tech-list"></div>`;
     const list = col.querySelector('.tech-list');
+    let hasVisibleTechs = false;
+    
     tactic.techniques.forEach(tech => {
-      const matched = matches(tech);
+      const matched = matches(tech, tactic.id);
       const card = document.createElement('div');
-      card.className = 'tech-card' + (currentSearch || currentFilter ? (matched ? ' highlighted' : ' dimmed') : '');
+      card.className = 'tech-card';
       card.style.setProperty('--sev-color', SEV_COLOR[tech.severity]);
+      
+      // Se está filtrando e não combina, esconder completamente
+      if (isFiltering && !matched) {
+        card.style.display = 'none';
+      } else {
+        hasVisibleTechs = true;
+      }
+      
       card.innerHTML = `
         <div class="tech-id">${tech.id}</div>
         <div class="tech-name">${tech.name}</div>
         ${showSubs && tech.subs ? `<div class="sub-toggle">${tech.subs.length} sub-técnicas</div>` : ''}`;
-      card.onclick = () => openPanel(tech, tactic);
+      card.onclick = () => updateHash(tech.id);
       list.appendChild(card);
       if (showSubs && tech.subs) {
         const subList = document.createElement('div');
@@ -388,19 +471,65 @@ function renderMatrix() {
           const si = document.createElement('div');
           si.className = 'sub-item';
           si.textContent = '↳ ' + s;
-          si.onclick = (e) => { e.stopPropagation(); openPanel(tech, tactic, s); };
+          si.onclick = (e) => { e.stopPropagation(); updateHash(tech.id, s); };
           subList.appendChild(si);
         });
+        // Esconder sub-list se a técnica pai está escondida
+        if (isFiltering && !matched) {
+          subList.style.display = 'none';
+        }
         list.appendChild(subList);
       }
     });
+    
+    // Se nenhuma técnica da tática é visível, esconder a coluna inteira
+    if (isFiltering && !hasVisibleTechs) {
+      col.style.display = 'none';
+    }
+    
     grid.appendChild(col);
   });
+}
+
+// Find technique and tactic by ID
+function findTechnique(techId) {
+  for (const tactic of tactics) {
+    const tech = tactic.techniques.find(t => t.id === techId);
+    if (tech) return { tech, tactic };
+  }
+  return null;
+}
+
+// Build reference URL
+function getReferenceUrl(ref) {
+  if (ref.startsWith('CWE-')) {
+    return `https://cwe.mitre.org/data/definitions/${ref.split('-')[1]}.html`;
+  } else if (ref.startsWith('OWASP A')) {
+    return `https://owasp.org/Top10/`;
+  } else if (ref.startsWith('OWASP')) {
+    return `https://owasp.org/`;
+  } else if (ref.startsWith('RFC')) {
+    const num = ref.split(' ')[1];
+    return `https://tools.ietf.org/html/rfc${num}`;
+  } else if (ref.includes('NIST')) {
+    return `https://csrc.nist.gov/`;
+  }
+  return null;
+}
+
+// Update URL hash when opening technique
+function updateHash(techId, sub) {
+  if (sub) {
+    window.location.hash = `/technique/${techId}/${encodeURIComponent(sub)}`;
+  } else {
+    window.location.hash = `/technique/${techId}`;
+  }
 }
 
 function openPanel(tech, tactic, sub) {
   const sc = SEV_COLOR[tech.severity];
   const sl = SEV_LABEL[tech.severity];
+  const shareUrl = `${window.location.origin}${window.location.pathname}#/technique/${tech.id}`;
   document.getElementById('panel-content').innerHTML = `
     <div class="panel-id">${tech.id}${sub ? ' › ' + sub : ''}</div>
     <div class="panel-title">${sub || tech.name}</div>
@@ -419,32 +548,152 @@ function openPanel(tech, tactic, sub) {
     </div>
     ${tech.references.length ? `<div class="panel-section">
       <div class="panel-section-title">Referências</div>
-      <div class="tag-list">${tech.references.map(r=>`<span class="tag blue">${r}</span>`).join('')}</div>
+      <div class="tag-list">${tech.references.map(r=>{
+        const url = getReferenceUrl(r);
+        return url ? `<a href="${url}" target="_blank" class="tag blue" style="text-decoration:none;cursor:pointer">${r}</a>` : `<span class="tag blue">${r}</span>`;
+      }).join('')}</div>
     </div>` : ''}
     <div class="panel-section">
       <div class="panel-section-title">Severidade — ${sl}</div>
       <div class="sev-meter">
         ${[1,2,3,4].map(i=>`<div class="sev-bar"><div class="sev-fill" style="width:${i<=tech.severity?100:0}%;background:${sc}"></div></div>`).join('')}
       </div>
-    </div>`;
+    </div>
+    ${tech.example ? `<div class="panel-section">
+      <div class="panel-section-title">Exemplo</div>
+      <pre style="background:var(--bg3);padding:10px;border-radius:2px;overflow-x:auto;font-size:11px;line-height:1.4;border:0.5px solid var(--border2);color:var(--text2);font-family:var(--mono)">${tech.example}</pre>
+    </div>` : ''}
+    <button class="panel-action" onclick="copyShareUrl('${shareUrl}'); event.stopPropagation();">📋 Copiar link</button>`;
   document.getElementById('detail-panel').classList.add('open');
   document.getElementById('overlay').classList.add('open');
+  updateHash(tech.id, sub);
+}
+
+function copyShareUrl(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.panel-action');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Link copiado!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
 }
 
 function closePanel() {
   document.getElementById('detail-panel').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
+  window.location.hash = '';
 }
+
+// Hash routing
+function handleHashChange() {
+  const hash = window.location.hash.slice(1);
+  if (hash.startsWith('/technique/')) {
+    const parts = hash.slice(11).split('/');
+    const techId = parts[0];
+    const sub = parts[1] ? decodeURIComponent(parts[1]) : null;
+    const found = findTechnique(techId);
+    if (found) {
+      openPanel(found.tech, found.tactic, sub);
+    }
+  } else if (!hash || hash === '/') {
+    closePanel();
+  }
+}
+
+window.addEventListener('hashchange', handleHashChange);
 
 // Stats
 const totalTechs = tactics.reduce((a,t)=>a+t.techniques.length,0);
 const totalSubs = tactics.reduce((a,t)=>a+t.techniques.reduce((b,tc)=>b+(tc.subs?.length||0),0),0);
+const sevCounts = { 1:0, 2:0, 3:0, 4:0 };
+tactics.forEach(t => t.techniques.forEach(tc => sevCounts[tc.severity]++));
+
 document.getElementById('hero-stats').innerHTML = `
-  <div class="stat"><div class="stat-num">${tactics.length}</div><div class="stat-label">Táticas</div></div>
-  <div class="stat"><div class="stat-num">${totalTechs}</div><div class="stat-label">Técnicas</div></div>
-  <div class="stat"><div class="stat-num">${totalSubs}</div><div class="stat-label">Sub-técnicas</div></div>`;
+  <div class="stat">
+    <div class="stat-num">${tactics.length}</div>
+    <div class="stat-label">Táticas</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">${totalTechs}</div>
+    <div class="stat-label">Técnicas</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">${totalSubs}</div>
+    <div class="stat-label">Sub-técnicas</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">${sevCounts[4] + sevCounts[3]}</div>
+    <div class="stat-label">Crítica/Alta</div>
+  </div>`;
 
 renderMatrix();
+
+// Build severity heatmap
+function buildHeatmap() {
+  const heatmapContainer = document.getElementById('severity-heatmap');
+  if (!heatmapContainer) return;
+  heatmapContainer.innerHTML = '';
+  
+  tactics.forEach(tactic => {
+    const sevCount = { 1:0, 2:0, 3:0, 4:0 };
+    tactic.techniques.forEach(tech => sevCount[tech.severity]++);
+    
+    // Calculate max severity
+    const maxSev = sevCount[4] > 0 ? 4 : sevCount[3] > 0 ? 3 : sevCount[2] > 0 ? 2 : 1;
+    const avgSev = (sevCount[4]*4 + sevCount[3]*3 + sevCount[2]*2 + sevCount[1]*1) / tactic.techniques.length;
+    
+    const heatCell = document.createElement('div');
+    heatCell.style.cssText = `
+      flex: 1; min-width: 120px;
+      padding: 12px; border-radius: 4px;
+      background: ${tactic.color}22; border: 0.5px solid ${tactic.color}44;
+      cursor: pointer; transition: all 0.2s;
+    `;
+    heatCell.onmouseover = () => {
+      heatCell.style.background = tactic.color + '33';
+      heatCell.style.borderColor = tactic.color + '66';
+    };
+    heatCell.onmouseout = () => {
+      heatCell.style.background = tactic.color + '22';
+      heatCell.style.borderColor = tactic.color + '44';
+    };
+    heatCell.onclick = () => filterTactic(tactic.id);
+    
+    heatCell.innerHTML = `
+      <div style="font-family: var(--mono); font-size: 10px; color: ${tactic.color}; font-weight: 600;">${tactic.name}</div>
+      <div style="font-size: 11px; color: var(--text2); margin-top: 4px;">
+        <span style="color: #f87171;">●${sevCount[4]}</span>
+        <span style="color: #fb923c; margin-left: 8px;">●${sevCount[3]}</span>
+        <span style="color: #fbbf24; margin-left: 8px;">●${sevCount[2]}</span>
+      </div>
+    `;
+    heatmapContainer.appendChild(heatCell);
+  });
+}
+
+// Show featured critical technique on page load
+function showFeaturedTechnique() {
+  // Find first critical technique
+  for (const tactic of tactics) {
+    const criticalTech = tactic.techniques.find(t => t.severity === 4);
+    if (criticalTech) {
+      setTimeout(() => {
+        openPanel(criticalTech, tactic);
+      }, 500);
+      return;
+    }
+  }
+}
+
+// Load from URL on page load
+if (window.location.hash) {
+  setTimeout(handleHashChange, 100);
+} else {
+  // Show featured technique if no hash
+  showFeaturedTechnique();
+}
+
+buildHeatmap();
 </script>
 </body>
 </html>
