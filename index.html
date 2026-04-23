@@ -315,7 +315,9 @@
 
 <div class="toolbar">
   <div class="toolbar-left">
-    <button class="chip active" id="btn-subs" onclick="toggleSubs()">Sub-técnicas</button>
+    <button class="chip active" id="btn-view-matrix" onclick="toggleView('matrix')" style="margin-right: 1rem;">📊 Matrix View</button>
+    <button class="chip" id="btn-view-chains" onclick="toggleView('chains')">🔗 Attack Chains</button>
+    <button class="chip active" id="btn-subs" onclick="toggleSubs()" style="margin-left: 1rem;">Sub-técnicas</button>
     <div class="filter-group" style="border-left: 0.5px solid var(--border); padding-left: 1rem; margin-left: 1rem;">
       <button class="chip" onclick="filterTactic('all')" id="ftactic-all" style="background:rgba(124,92,252,0.15);border-color:rgba(124,92,252,0.4);color:var(--accent2)">Todas as táticas</button>
       <span id="tactic-filter-buttons"></span>
@@ -349,8 +351,15 @@
   </div>
 </div>
 
-<div class="matrix-container">
+<div class="matrix-container" id="matrix-container">
   <div class="matrix-grid" id="matrix-grid"></div>
+</div>
+
+<div id="chains-container" style="display: none; padding: 2rem;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <h2 style="font-size: 24px; margin-bottom: 2rem; color: var(--accent2);">🔗 Cadeias de Ataque Completas</h2>
+    <div id="chains-list" style="display: grid; gap: 2rem;"></div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" onclick="closePanel()"></div>

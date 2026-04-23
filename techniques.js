@@ -1064,3 +1064,348 @@ const response = await llm.withContext(whitelist, sanitized);`
   }
 ];
 
+// ===== ATTACK CHAINS - Cadeias de ataque completas =====
+const attackChains = [
+  {
+    id: "CHAIN-001",
+    name: "Phishing → Credential Theft → Account Takeover",
+    description: "Ataque de takeover de conta via phishing direcionado",
+    techniques: ["W004", "W005", "W040"],
+    difficulty: "Fácil",
+    timeframe: "1-2 semanas",
+    impact: "Account Takeover - Acesso total à conta",
+    steps: [
+      {
+        order: 1,
+        technique: "W004",
+        action: "Phishing direcionado",
+        description: "Criar página falsa de login que imita a aplicação legítima",
+        duration: "1-2 dias"
+      },
+      {
+        order: 2,
+        technique: "W005",
+        action: "Captura de credenciais",
+        description: "Coletar username/password da vítima via formulário falso",
+        duration: "Instantâneo (após click do usuário)"
+      },
+      {
+        order: 3,
+        technique: "W040",
+        action: "Account takeover",
+        description: "Login com credenciais roubadas e assumir conta",
+        duration: "Instantâneo"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-002",
+    name: "Recon → SQLi → Data Exfiltration → RCE",
+    description: "Exploração completa via SQL Injection, do reconhecimento até RCE",
+    techniques: ["W001", "W002", "W007", "W062", "W022"],
+    difficulty: "Intermediário",
+    timeframe: "2-4 semanas",
+    impact: "RCE - Controle total do servidor",
+    steps: [
+      {
+        order: 1,
+        technique: "W001",
+        action: "Fingerprinting de tecnologia",
+        description: "Identificar stack (PHP, Node.js, versões) via headers e erros",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W002",
+        action: "Mapeamento de endpoints",
+        description: "Descobrir endpoints vulneráveis e formulários de login/search",
+        duration: "2-5 dias"
+      },
+      {
+        order: 3,
+        technique: "W007",
+        action: "SQL Injection",
+        description: "Injetar SQL em campo de search ou login para extrair dados",
+        duration: "1-3 dias"
+      },
+      {
+        order: 4,
+        technique: "W062",
+        action: "Extração blind de dados",
+        description: "Usar time-based SQLi para exfiltrar dados sensíveis (admin creds)",
+        duration: "1-2 dias"
+      },
+      {
+        order: 5,
+        technique: "W022",
+        action: "Remote Code Execution",
+        description: "Usar SQLi + into outfile ou stored procedures para RCE",
+        duration: "1 dia"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-003",
+    name: "OSINT → Subdomain Discovery → Admin Panel Access",
+    description: "Descoberta de admin panel via OSINT e enumeração",
+    techniques: ["W003", "W023", "W024", "W058"],
+    difficulty: "Fácil",
+    timeframe: "1-3 semanas",
+    impact: "Admin Access - Acesso a painel administrativo",
+    steps: [
+      {
+        order: 1,
+        technique: "W003",
+        action: "OSINT - Google dorks e GitHub",
+        description: "Procurar por credenciais, URLs de admin, ou vazamento de dados em repositórios públicos",
+        duration: "2-5 dias"
+      },
+      {
+        order: 2,
+        technique: "W023",
+        action: "DNS Enumeration",
+        description: "Bruteforce de subdomínios (admin.site.com, staging.site.com, etc)",
+        duration: "1-3 dias"
+      },
+      {
+        order: 3,
+        technique: "W024",
+        action: "Certificate Transparency Analysis",
+        description: "Verificar CT logs para descobrir subdomínios adicionais",
+        duration: "1 dia"
+      },
+      {
+        order: 4,
+        technique: "W058",
+        action: "Admin Panel Discovery",
+        description: "Acessar /admin, /administrator, etc descobertos e testar default credentials",
+        duration: "1-2 dias"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-004",
+    name: "XSS Stored → Session Hijacking → Data Theft",
+    description: "Roubo de sessão via XSS armazenado",
+    techniques: ["W008", "W011", "W040"],
+    difficulty: "Intermediário",
+    timeframe: "1-2 semanas",
+    impact: "Account Takeover - Roubo de sessão de múltiplos usuários",
+    steps: [
+      {
+        order: 1,
+        technique: "W008",
+        action: "Stored XSS Injection",
+        description: "Injetar script malicioso em campo de perfil, comentário ou descrição que seja persistido",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W011",
+        action: "Session Hijacking via Cookie Theft",
+        description: "Script XSS rouba cookies de sessão de todos usuários que acessam a página",
+        duration: "Contínuo (enquanto script estiver armazenado)"
+      },
+      {
+        order: 3,
+        technique: "W040",
+        action: "Account Takeover",
+        description: "Usar cookies roubados para hacer login como outras contas",
+        duration: "Instantâneo por cookie"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-005",
+    name: "CORS Misconfiguration → Data Exfiltration",
+    description: "Exploração de CORS para roubar dados de domínios terceiros",
+    techniques: ["W066", "W017"],
+    difficulty: "Fácil",
+    timeframe: "1-2 semanas",
+    impact: "Data Exfiltration - Roubo de dados de usuários",
+    steps: [
+      {
+        order: 1,
+        technique: "W066",
+        action: "CORS Misconfiguration Detection",
+        description: "Identificar wildcard CORS (*) ou validação de origin fraca",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W017",
+        action: "API Data Scraping",
+        description: "Fazer requisições cross-origin para API sem CORS restrito",
+        duration: "1 dia"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-006",
+    name: "File Upload → Webshell → C2 Communication",
+    description: "Obtenção de acesso persistente via webshell e C2",
+    techniques: ["W038", "W050", "W063"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "Persistent Access - Acesso contínuo ao servidor",
+    steps: [
+      {
+        order: 1,
+        technique: "W038",
+        action: "Insecure File Upload",
+        description: "Contornar validação de upload para fazer upload de webshell",
+        duration: "2-5 dias"
+      },
+      {
+        order: 2,
+        technique: "W050",
+        action: "Webshell Deployment",
+        description: "Executar PHP/Aspx webshell para ganhar acesso ao servidor",
+        duration: "1 dia"
+      },
+      {
+        order: 3,
+        technique: "W063",
+        action: "C2 Communication",
+        description: "Estabelecer comando e controle remoto via webshell",
+        duration: "Contínuo"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-007",
+    name: "IDOR → Lateral Movement → Multi-Tenant Data Breach",
+    description: "Escalação de acesso via IDOR em ambiente multi-tenant",
+    techniques: ["W014", "W055", "W059"],
+    difficulty: "Intermediário",
+    timeframe: "2-4 semanas",
+    impact: "Data Breach - Acesso a dados de múltiplos usuários/tenants",
+    steps: [
+      {
+        order: 1,
+        technique: "W014",
+        action: "IDOR Exploitation",
+        description: "Manipular user ID em URL (/api/user/123) para acessar dados de outro usuário",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W055",
+        action: "API to API Abuse",
+        description: "Usar tokens de serviço roubados para fazer requisições entre microserviços",
+        duration: "2-5 dias"
+      },
+      {
+        order: 3,
+        technique: "W059",
+        action: "Multi-Tenant Data Access",
+        description: "Manipular tenant ID para acessar dados de outros clientes/tenants",
+        duration: "1-2 dias"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-008",
+    name: "SSRF → Internal Network Scanning → RCE",
+    description: "Exploração de SSRF para acesso a recursos internos",
+    techniques: ["W002", "W018", "W022"],
+    difficulty: "Intermediário",
+    timeframe: "2-3 semanas",
+    impact: "RCE - Acesso a infraestrutura interna",
+    steps: [
+      {
+        order: 1,
+        technique: "W002",
+        action: "Endpoint Discovery",
+        description: "Encontrar endpoints que aceitam URLs (URL shortener, image proxy, PDF generator)",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W018",
+        action: "SSRF Attack",
+        description: "Forçar servidor a fazer requisições internas (localhost:8080, 10.0.0.x, metadata 169.254)",
+        duration: "2-5 dias"
+      },
+      {
+        order: 3,
+        technique: "W022",
+        action: "RCE via SSRF",
+        description: "Acessar admin panels internos ou services vulneráveis (Redis, Memcached) via SSRF",
+        duration: "1-2 dias"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-009",
+    name: "JWT Algorithm Confusion → Privilege Escalation",
+    description: "Forjamento de JWT para escalação de privilégio",
+    techniques: ["W012", "W015"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "Privilege Escalation - Acesso com permissões de admin",
+    steps: [
+      {
+        order: 1,
+        technique: "W012",
+        action: "JWT Attack - Algorithm Confusion",
+        description: "Capturar JWT legítimo e tentar mudar alg de RS256 para HS256",
+        duration: "1-3 dias"
+      },
+      {
+        order: 2,
+        technique: "W015",
+        action: "Privilege Escalation",
+        description: "Modificar payload (role: admin) e assinar com chave pública como HMAC",
+        duration: "1 dia"
+      }
+    ]
+  },
+  {
+    id: "CHAIN-010",
+    name: "WAF Bypass → SQLi → RCE (Advanced)",
+    description: "Bypass de WAF para exploração de SQLi com evasão",
+    techniques: ["W043", "W044", "W045", "W007", "W022"],
+    difficulty: "Avançado",
+    timeframe: "3-6 semanas",
+    impact: "RCE - Controle total com evasão de detecção",
+    steps: [
+      {
+        order: 1,
+        technique: "W043",
+        action: "WAF Encoding Bypass",
+        description: "Codificar payload SQL com double encoding, UTF-8, etc",
+        duration: "2-5 dias"
+      },
+      {
+        order: 2,
+        technique: "W044",
+        action: "Case Variation Bypass",
+        description: "Usar UNION/**/SELECT ou union/*...*/select para bypass",
+        duration: "1-2 dias"
+      },
+      {
+        order: 3,
+        technique: "W045",
+        action: "Whitespace/Null Byte Bypass",
+        description: "Inserir %0a, tabs, null bytes em SQL para evitar regex WAF",
+        duration: "1-2 dias"
+      },
+      {
+        order: 4,
+        technique: "W007",
+        action: "SQL Injection Exploitation",
+        description: "Executar SQLi que passou pelo WAF para exfiltrar dados",
+        duration: "1-3 dias"
+      },
+      {
+        order: 5,
+        technique: "W022",
+        action: "RCE via SQLi",
+        description: "Usar into outfile ou prepared statements para RCE",
+        duration: "1 dia"
+      }
+    ]
+  }
+];
+
