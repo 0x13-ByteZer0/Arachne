@@ -62,6 +62,25 @@ const tactics = [
         mitigations: ["Solicitar remoção em archive.org", "Não expor secrets em histórico de commits", "Renovar credenciais comprometidas"],
         references: ["archive.org", "OWASP OTG"]
       }
+      ,
+      {
+        id: "W089",
+        name: "Subdomain takeover",
+        subs: ["Dangling CNAME", "Unclaimed cloud service", "DNS misconfigurations"],
+        desc: "Tomada de subdomínio quando um registro DNS aponta para um recurso (GitHub Pages, Heroku, S3, Netlify, etc.) que não está mais provisionado. Um atacante pode reivindicar o serviço e servir conteúdo malicioso no domínio da vítima.",
+        severity: 3,
+        mitigations: ["Remover CNAMEs apontando para serviços não utilizados", "Monitorar registros DNS e claims de serviço", "Automatizar verificação de dangling records"],
+        references: ["HackTricks - Subdomain takeover", "OWASP Recon" ]
+      },
+      {
+        id: "W090",
+        name: "CI/CD & secrets leakage",
+        subs: ["Exposed pipeline vars", "Artifact leaks", "Credentials in CI logs"],
+        desc: "Vazamento de segredos e configurações sensíveis através de pipelines CI/CD, arquivos de build, artefatos públicos ou logs de execução. Esses segredos podem incluir tokens, chaves ou endpoints que facilitam comprometimento posterior.",
+        severity: 3,
+        mitigations: ["Scanner de segredos em commits e pipelines", "Reduzir privilégios em tokens de CI", "Evitar gravar secrets em logs"],
+        references: ["HackTricks - CI/CD", "GitHub secret scanning"]
+      }
     ]
   },
   {
@@ -232,6 +251,34 @@ app.get('/ping', (req, res) => {
         severity: 4,
         mitigations: ["Não avaliar input de usuário como EL", "Escape de caracteres especiais", "Atualizar frameworks"],
         references: ["CWE-917", "PortSwigger ELi"]
+      }
+      ,
+      {
+        id: "W091",
+        name: "Local File Inclusion (LFI)",
+        subs: ["Log file inclusion", "Null byte bypass", "RFI chaining"],
+        desc: "Inclusão de arquivos locais via parâmetros controlados pelo usuário, permitindo leitura de arquivos sensíveis, potencial para RCE via log poisoning ou cadeia com file:// e wrappers remotos.",
+        severity: 4,
+        mitigations: ["Usar allowlist de arquivos", "Canonicalizar caminhos e rejeitar ../", "Não expor caminhos de arquivo diretamente em parâmetros"],
+        references: ["CWE-98", "HackTricks - LFI"]
+      },
+      {
+        id: "W092",
+        name: "HTTP response splitting / CRLF injection",
+        subs: ["Header injection", "Log forging", "Response splitting"],
+        desc: "Inserção de CRLF (\r\n) em valores controlados pelo usuário que são usados em cabeçalhos HTTP ou logs, permitindo divisão de resposta, cache poisoning, redirecionamentos maliciosos ou injeção em logs.",
+        severity: 3,
+        mitigations: ["Sanitizar e rejeitar CR/LF em valores de header", "Usar API de headers do framework em vez de concatenar strings", "Normalizar input antes de loggar"],
+        references: ["CWE-93", "HackTricks - CRLF Injection"]
+      },
+      {
+        id: "W093",
+        name: "Image processing RCE (ImageMagick / ImageTragick)",
+        subs: ["Image conversion abuse", "Exif processing", "External delegate calls"],
+        desc: "Execução remota ou comandos arbitrários ao processar imagens com bibliotecas vulneráveis (ImageMagick 'convert' delegates etc.). Payloads em imagens podem acionar execução de comandos no servidor.",
+        severity: 4,
+        mitigations: ["Isolar processadores de imagem", "Atualizar bibliotecas e aplicar filtros de delegate", "Processar imagens em serviço isolado"],
+        references: ["HackTricks - ImageTragick", "CVE research"]
       }
     ]
   },
@@ -569,6 +616,16 @@ javascript:/**/';DROP TABLE users;--
         mitigations: ["Logs centralizados imutáveis", "CRLF sanitization", "Log integrity verification"],
         references: ["CWE-222", "OWASP Logging Cheat Sheet"]
       }
+      ,
+      {
+        id: "W094",
+        name: "HTTP Parameter Pollution (HPP)",
+        subs: ["Duplicate params", "Array tampering", "Parser ambiguity"],
+        desc: "Manipulação de parâmetros HTTP enviando múltiplas ocorrências de uma mesma chave para confundir o servidor ou proxies intermediários, gerando comportamentos inesperados que podem levar a bypass de validações ou autorização.",
+        severity: 2,
+        mitigations: ["Normalizar e canonicalizar parâmetros", "Definir um único comportamento para parâmetros repetidos", "Usar parsing consistente em front- and back-end"],
+        references: ["HackTricks - HPP", "OWASP HPP"]
+      }
     ]
   },
   {
@@ -796,6 +853,25 @@ Access-Control-Max-Age: 3600`
         severity: 2,
         mitigations: ["Desabilitar TRACE, DEBUG, CONNECT", "Requerer autenticação em PUT/DELETE", "Usar whitelist de métodos"],
         references: ["CWE-352", "OWASP API Security"]
+      }
+      ,
+      {
+        id: "W095",
+        name: "Misconfigured cloud storage (S3/GCS/Buckets)",
+        subs: ["Public buckets", "Bucket takeover", "Exposed artifacts"],
+        desc: "Buckets de armazenamento (S3/GCS/Azure Blob) mal configurados podem expor arquivos sensíveis, permitir upload público ou ser reivindicados via nome de domínio, levando a exfiltração ou implantação de artefatos maliciosos.",
+        severity: 3,
+        mitigations: ["Habilitar bloqueio de acesso público", "Policies/ACLs restritivas", "Auditar blobs e configuração de CORS", "Usar buckets com nomes não previsíveis quando necessário"],
+        references: ["HackTricks - Cloud storage misconfig", "OWASP Cloud Security"]
+      },
+      {
+        id: "W096",
+        name: "Clickjacking / Missing X-Frame-Options",
+        subs: ["Frame embedding", "UI redress", "Invisible overlay click"],
+        desc: "Permitir que a aplicação seja incorporada em frames de outros domínios pode levar a clickjacking, onde um atacante engana o usuário para clicar em elementos invisíveis, executando ações indesejadas em contexto autenticado.",
+        severity: 2,
+        mitigations: ["Setar X-Frame-Options: DENY or SAMEORIGIN", "Frame-ancestors CSP directive", "Confirmar ações sensíveis via re-authentication"],
+        references: ["CWE-1021", "OWASP Clickjacking Cheat Sheet"]
       }
     ]
   },
@@ -1481,6 +1557,121 @@ const attackChains = [
       { order: 2, technique: "W060", action: "DNS tunneling", description: "Encapsular e enviar dados via queries DNS a servidores controlados", duration: "1-3 dias" },
       { order: 3, technique: "W061", action: "HTTP metadata exfiltration", description: "Usar headers ou user-agent para enviar fragmentos de dados", duration: "Contínuo" },
       { order: 4, technique: "W017", action: "API aggregation", description: "Agregação final via API scraping/collection", duration: "1-2 dias" }
+    ]
+  }
+  ,
+  {
+    id: "CHAIN-016",
+    name: "CI/CD Secrets → Build Compromise → Supply-Chain Backdoor",
+    description: "Vazamento de segredos em pipelines CI que levam ao comprometimento do processo de build e injeção de dependências maliciosas.",
+    techniques: ["W090", "W006", "W051", "W022"],
+    difficulty: "Intermediário",
+    timeframe: "2-6 semanas",
+    impact: "Supply chain compromise / RCE",
+    steps: [
+      { order: 1, technique: "W090", action: "CI/CD secrets discovery", description: "Encontrar tokens, variáveis ou logs expostos em pipelines e artefatos", duration: "1-7 dias" },
+      { order: 2, technique: "W006", action: "Abuse supply chain access", description: "Usar credenciais de CI para publicar artefatos maliciosos ou acessar registries", duration: "2-7 dias" },
+      { order: 3, technique: "W051", action: "Backdoor dependency", description: "Introduzir versão comprometida de dependência que será instalada no build", duration: "1-5 dias" },
+      { order: 4, technique: "W022", action: "Remote Code Execution", description: "Explorar a cadeia comprometida em ambiente de produção para execução remota", duration: "1-3 dias" }
+    ]
+  },
+  {
+    id: "CHAIN-017",
+    name: "Subdomain Takeover → Brand Impersonation → Phishing",
+    description: "Aproveitar subdomínio não reclamado para hospedar conteúdo malicioso, phishing ou defacement em nome da vítima.",
+    techniques: ["W089", "W004", "W020"],
+    difficulty: "Fácil",
+    timeframe: "1-4 semanas",
+    impact: "Phishing / Reputational damage",
+    steps: [
+      { order: 1, technique: "W089", action: "Detect dangling DNS/CNAME", description: "Identificar registros DNS apontando para serviços não provisionados", duration: "1-3 dias" },
+      { order: 2, technique: "W089", action: "Claim service and host content", description: "Reivindicar serviço (ex: Netlify, S3) e publicar páginas/artefatos", duration: "1-3 dias" },
+      { order: 3, technique: "W004", action: "Phishing hosting", description: "Hospedar páginas de phishing ou forms que se passam pelo site legítimo", duration: "1-3 dias" },
+      { order: 4, technique: "W020", action: "Defacement / brand abuse", description: "Modificar conteúdo público para dano à reputação ou redirecionamento", duration: "Instantâneo" }
+    ]
+  },
+  {
+    id: "CHAIN-018",
+    name: "LFI → Log Poisoning → RCE via File Inclusion",
+    description: "Combinar LFI com injeção em logs (user-agent, headers) para executar código ou obter shell via inclusão de arquivos de log.",
+    techniques: ["W091", "W049", "W022"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "RCE / Shell access",
+    steps: [
+      { order: 1, technique: "W049", action: "Log forging / payload injection", description: "Injetar payloads em campos logados (User-Agent, Referer, headers)", duration: "1-2 dias" },
+      { order: 2, technique: "W091", action: "Local File Inclusion", description: "Incluir arquivos de log via LFI para executar o payload injetado", duration: "1-3 dias" },
+      { order: 3, technique: "W022", action: "Escalada para RCE", description: "Extrair shell ou executar comandos através do arquivo incluído", duration: "1 dia" }
+    ]
+  },
+  {
+    id: "CHAIN-019",
+    name: "Image Processing RCE → Webshell Deployment",
+    description: "Aproveitar falhas em processamento de imagens (ImageTragick) para executar comandos e plantar webshells.",
+    techniques: ["W093", "W022", "W050"],
+    difficulty: "Intermediário",
+    timeframe: "1-2 semanas",
+    impact: "RCE e persistência via webshell",
+    steps: [
+      { order: 1, technique: "W093", action: "Craft malicious image", description: "Criar imagem com payloads que acionam delegações inseguras (ImageMagick delegates)", duration: "1-3 dias" },
+      { order: 2, technique: "W022", action: "Trigger RCE via image processing", description: "Enviar imagem para endpoint que processa/convierte imagens e executar comando", duration: "1 dia" },
+      { order: 3, technique: "W050", action: "Deploy webshell", description: "Salvar webshell via comando executado e acessá-lo para persistência", duration: "1 dia" }
+    ]
+  },
+  {
+    id: "CHAIN-020",
+    name: "HPP → Auth Bypass → Data Theft",
+    description: "Usar HTTP Parameter Pollution para confundir validações e contornar controles de autorização, resultando em exfiltração de dados.",
+    techniques: ["W094", "W015", "W017"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "Data Exfiltration / Privilege Escalation",
+    steps: [
+      { order: 1, technique: "W094", action: "Craft HPP requests", description: "Enviar parâmetros duplicados para explorar ambiguidade no parsing do servidor/proxy", duration: "1-3 dias" },
+      { order: 2, technique: "W015", action: "Authorization bypass", description: "Aproveitar parsing conflitante para alterar roles/IDs percebidos pela aplicação", duration: "1-4 dias" },
+      { order: 3, technique: "W017", action: "API data scraping", description: "Extração massiva de dados com privilégios escalados", duration: "1-3 dias" }
+    ]
+  },
+  {
+    id: "CHAIN-021",
+    name: "Public Bucket → Asset Injection → XSS / Supply-Chain",
+    description: "Explorar buckets públicos mal configurados para hospedar assets atacantes que são consumidos pela aplicação ou por usuários, levando a XSS ou supply-chain impact.",
+    techniques: ["W095", "W006", "W008"],
+    difficulty: "Fácil",
+    timeframe: "1-2 semanas",
+    impact: "XSS / Supply chain contamination",
+    steps: [
+      { order: 1, technique: "W095", action: "Discover public buckets", description: "Identificar buckets publicamente acessíveis vinculados ao domínio ou assets usados pela aplicação", duration: "1-3 dias" },
+      { order: 2, technique: "W006", action: "Upload malicious asset or replace file", description: "Carregar ou substituir assets estáticos (JS, CSS, imagens) usados pela aplicação ou pipeline", duration: "1-3 dias" },
+      { order: 3, technique: "W008", action: "Trigger XSS / supply-chain impact", description: "Clientes carregam assets maliciosos resultando em XSS, credential theft ou comprometimento de builds", duration: "Instantâneo após consumo" }
+    ]
+  },
+  {
+    id: "CHAIN-022",
+    name: "Clickjacking → CSRF → Unauthorized State Change",
+    description: "Combinar clickjacking com CSRF para induzir usuários autenticados a executar ações sensíveis sem confirmação.",
+    techniques: ["W096", "W074", "W020"],
+    difficulty: "Fácil",
+    timeframe: "1-2 semanas",
+    impact: "Unauthorized state changes / fraud",
+    steps: [
+      { order: 1, technique: "W096", action: "Frame victim site", description: "Incorporar interface da vítima em iframe invisível no site atacante", duration: "1-2 dias" },
+      { order: 2, technique: "W074", action: "CSRF trigger", description: "Executar requisição forjada (form/image) dentro do iframe enquanto usuário autenticado interage", duration: "Instantâneo" },
+      { order: 3, technique: "W020", action: "Effect state change", description: "Confirmar que ação sensível foi executada (transferência, alteração de configuração)", duration: "Instantâneo" }
+    ]
+  },
+  {
+    id: "CHAIN-023",
+    name: "Request Smuggling → Cache Poisoning → Large-scale Impact",
+    description: "Combinar request smuggling com cache poisoning para servir conteúdo malicioso em escala a usuários legítimos.",
+    techniques: ["W077", "W076", "W043"],
+    difficulty: "Avançado",
+    timeframe: "3-8 semanas",
+    impact: "Wide-scale defacement / credential theft / cache poisoning",
+    steps: [
+      { order: 1, technique: "W077", action: "Identify smuggling vector", description: "Analisar front-end proxy e back-end para diferenças de parsing (CL.TE, TE.CL)", duration: "3-10 dias" },
+      { order: 2, technique: "W076", action: "Poison cache via crafted requests", description: "Explorar comportamento de cache para injetar respostas armazenadas que serão servidas a outros usuários", duration: "1-3 semanas" },
+      { order: 3, technique: "W043", action: "Evasion and payload delivery", description: "Aplicar encoding/encoding tricks para contornar WAFs e entregar payloads armazenados no cache", duration: "1-2 semanas" }
     ]
   }
 ];
