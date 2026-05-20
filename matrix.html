@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arachne — Matrix</title>
+  <link rel="icon" href="logo/logo.png" type="image/png" />
+  <link rel="shortcut icon" href="logo/logo.png" type="image/png" />
+  <meta name="description" content="Knowledge base of adversary tactics and techniques targeting web applications. Inspired by MITRE ATT&CK." />
+  <meta property="og:title" content="Arachne — Web Application Attack Matrix" />
+  <meta property="og:description" content="Táticas e técnicas de ataque a aplicações web, organizadas em uma matriz interativa." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #18181f;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+    }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --bg-top:#071021; --bg:#0a0a0f; --bg2:#0f1116; --card: rgba(255,255,255,0.03); --glass: rgba(255,255,255,0.02); --accent:#7c5cfc; --accent2:#a78bfa; --muted:#9aa0b6; --text:#e8e8f0; --text2:#cbd5e1; --text3:#9aa6b2; --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif; --radius:10px; }
+        html { scroll-behavior: smooth; }
+        body { background: linear-gradient(180deg,var(--bg-top) 0%, var(--bg) 60%); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; min-height: 100vh; -webkit-font-smoothing:antialiased; }
+        nav { position: sticky; top: 0; z-index: 60; display:flex; align-items:center; justify-content:space-between; padding: 0 2rem; height:64px; background: rgba(6,6,8,0.5); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .nav-logo-img{height:32px;border-radius:6px;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.6));}
+        .brand{font-family:var(--mono); font-weight:700; color:var(--text); margin-left:6px}
+        .nav-links a{color:var(--muted); text-decoration:none; padding:8px 10px; border-radius:8px; transition:all .15s}
+        .nav-links a:hover{background: linear-gradient(90deg, rgba(167,139,250,0.06), rgba(124,92,252,0.04)); color:var(--text)}
+      header.hero{padding:90px 20px 48px;text-align:center;position:relative}
+      .hero::before{content:'';position:absolute;left:-10%;top:-20%;width:70%;height:420px;background:radial-gradient(closest-side at 20% 30%, rgba(124,92,252,0.20), transparent 20%), radial-gradient(closest-side at 80% 60%, rgba(167,139,250,0.10), transparent 30%);filter:blur(80px);transform:translateZ(0);pointer-events:none}
+      .hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+      .hero-logo{height:240px;width:auto;margin:0 auto 8px;display:block;filter:drop-shadow(0 20px 40px rgba(2,6,23,0.6));animation:logoPop .9s cubic-bezier(.2,.8,.2,1)}
+      @keyframes logoPop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.02);opacity:1}100%{transform:scale(1)}}
+      .hero h1{font-family:var(--mono);font-size:40px;margin:6px 0 12px}
+      p.lead{color:var(--muted);max-width:780px;margin:0 auto 18px;font-size:16px;line-height:1.6}
+      .cta{display:inline-flex;gap:10px;align-items:center;background:linear-gradient(90deg,var(--accent),var(--accent2));color:white;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 14px 40px rgba(124,92,252,0.18);transition:transform .18s ease}
+      .cta:hover{transform:translateY(-3px)}
+      .hero-stats{display:flex;gap:28px;justify-content:center;align-items:center;margin-top:18px}
+      .stat-num{font-family:var(--mono); font-size:20px; font-weight:700}
+      .stat-label{font-size:12px;color:var(--muted); margin-top:4px}
+      /* Author/profile card in hero (matches home) */
+      .hero-aside{position:absolute;right:2rem;top:110px;z-index:3}
+      .profile-card{width:320px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 12px 30px rgba(2,6,23,0.6);text-align:center}
+      .profile-card .avatar{width:100px;height:100px;border-radius:14px;display:block;margin:0 auto 12px;box-shadow:0 12px 30px rgba(2,6,23,0.6)}
+      .profile-card h3{margin:6px 0 4px;font-size:18px}
+      .profile-card .muted{color:var(--muted);margin-bottom:8px}
+      .cert-table{width:100%;border-collapse:collapse;margin:8px 0 6px;font-size:13px}
+      .cert-table td{padding:6px 4px;vertical-align:top}
+      .cert-table tr td:first-child{width:66%;font-weight:600;color:var(--text)}
+      .cert-table tr td:last-child{text-align:right;color:var(--muted);font-weight:500}
+      .profile-card .bio{color:var(--text2);margin-top:8px;font-size:14px;line-height:1.4;text-align:left}
+      @media (max-width:1000px){.hero-aside{display:none}}
+        .toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 2rem;border-bottom:1px solid rgba(255,255,255,0.03); gap:12px; flex-wrap:wrap}
+        .chip{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer;transition:all .15s}
+        .chip:hover{transform:translateY(-2px); color:var(--text); border-color: rgba(124,92,252,0.3)}
+        .chip.active{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; box-shadow:0 8px 30px rgba(124,92,252,0.14); border-color:transparent}
+        .search-wrap input{border-radius:999px;padding:10px 14px 10px 36px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);color:var(--text);width:260px;transition:box-shadow .12s}
+        .search-wrap input:focus{box-shadow:0 8px 30px rgba(124,92,252,0.06);outline:none;border-color:rgba(124,92,252,0.22)}
+        .filter-group{display:flex;gap:8px;align-items:center}
+        .legend{padding:10px 2rem;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:14px;align-items:center;color:var(--muted)}
+        .matrix-container{overflow-x:auto;padding:1.5rem 2rem 3.25rem}
+        .matrix-grid{display:flex;gap:12px;min-width:max-content;align-items:flex-start;padding-top:6px}
+        .tactic-col{width:180px;flex-shrink:0}
+        .tactic-header{padding:14px;border-radius:12px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);box-shadow:inset 0 -1px 0 rgba(255,255,255,0.01)}
+        .tactic-name{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:700}
+        .tactic-id{font-size:11px;color:var(--muted);margin-top:6px}
+        .tactic-count{font-size:12px;color:var(--muted);margin-top:8px}
+        .tech-list{display:flex;flex-direction:column;gap:8px}
+        .tech-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));padding:10px 10px 10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);cursor:pointer;transition:transform .12s, box-shadow .12s, background .12s}
+        .tech-card::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:4px;border-radius:6px;background:var(--sev-color, rgba(255,255,255,0.06));}
+        .tech-card:hover{transform:translateY(-6px);box-shadow:0 12px 30px rgba(2,6,23,0.6);background:rgba(255,255,255,0.02)}
+        .tech-id{font-family:var(--mono);font-size:11px;color:var(--muted)}
+        .tech-name{font-size:13px;color:var(--text);margin-top:6px}
+        .sub-toggle{font-size:11px;color:var(--muted);margin-top:6px}
+        .sub-list{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+        .sub-item{font-size:12px;padding:6px 10px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));color:var(--muted);border-radius:6px;border:1px solid rgba(255,255,255,0.02);cursor:pointer;border-left:4px solid var(--tactic-color, rgba(255,255,255,0.06));}
+        .sub-item:hover{color:var(--text);background:rgba(255,255,255,0.02)}
+        .detail-panel{width:420px;max-width:calc(100% - 40px)}
+        .overlay{position:fixed;inset:0;background:rgba(2,6,23,0.6);opacity:0;pointer-events:none;transition:opacity .18s;z-index:80}
+        .overlay.open{opacity:1;pointer-events:auto}
+        /* Centered detail panel */
+        .detail-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-40%);opacity:0;transition:transform .18s ease,opacity .18s ease;z-index:90;pointer-events:none;background:linear-gradient(180deg,var(--bg2),var(--bg3));border:1px solid rgba(255,255,255,0.04);border-radius:12px;box-shadow:0 20px 50px rgba(2,6,23,0.6);color:var(--text);width:min(720px,calc(100% - 40px));max-width:calc(100% - 40px);box-sizing:border-box;display:flex;flex-direction:column;max-height:calc(100vh - 80px);}
+        .detail-panel.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+        .panel-close{position:absolute;right:12px;top:12px;background:transparent;border:0;color:var(--text2);font-size:16px;cursor:pointer}
+        .panel-action{border-radius:8px}
+        /* Panel body and footer to keep buttons visible while content scrolls */
+        .panel-body{padding:16px;overflow-y:auto;flex:1}
+        .panel-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.03);display:flex;gap:8px;justify-content:flex-end;align-items:center;background:linear-gradient(180deg,rgba(255,255,255,0.00),rgba(255,255,255,0.01))}
+        #panel-copy-btn{display:inline-block}
+        #severity-heatmap > div{border-radius:10px;padding:14px;box-shadow:0 8px 22px rgba(2,6,23,0.45);border:1px solid rgba(255,255,255,0.03);transition:transform .15s,box-shadow .15s}
+        #severity-heatmap > div:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(2,6,23,0.6)}
+
+        /* Panel / tags styling */
+        .panel-id{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:6px}
+        .panel-title{font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text)}
+        .panel-badges{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+        .badge{display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);font-size:12px;background:transparent}
+        .tag{display:inline-block;padding:6px 8px;border-radius:6px;margin-right:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);font-size:12px;color:var(--text2);text-decoration:none}
+        .tag.blue{color:#3b82f6;border-color:#3b82f644;background:rgba(59,130,246,0.04)}
+        .tag.green{color:#16a34a;border-color:#16a34a44;background:rgba(22,163,74,0.04)}
+        .panel-section-title{font-weight:700;color:var(--muted);margin-bottom:6px;font-size:13px}
+        .panel-desc{color:var(--text2);margin-bottom:8px}
+        .panel-action{border-radius:8px;padding:8px 10px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border:0;cursor:pointer}
+
+        footer{border-top:1px solid rgba(255,255,255,0.03);padding:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+        @media (max-width:900px){.tactic-col{width:150px}.search-wrap input{width:160px}.detail-panel{width:100%}}
+        @media (max-width:600px){nav{padding:0 12px}.toolbar{padding:12px}.hero-logo{height:96px}}
+        ::-webkit-scrollbar{height:10px} ::-webkit-scrollbar-thumb{background:linear-gradient(90deg, rgba(124,92,252,0.25), rgba(167,139,250,0.18));border-radius:999px}
+    footer a { color: var(--text2); text-decoration: none; font-size: 12px; }
+    footer a:hover { color: var(--text); }
+    .footer-links { display: flex; gap: 1.5rem; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .hero { padding: 3rem 1rem 2rem; }
+      .hero h1 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+      .hero-logo { height: 120px; }
+      .toolbar { padding: 0.75rem 1rem; flex-direction: column; gap: 1rem; }
+      .toolbar-left { flex-direction: column; gap: 0.75rem; width: 100%; }
+      .toolbar-left > div { border-left: none !important; padding-left: 0 !important; margin-left: 0 !important; width: 100%; }
+      .search-wrap { width: 100%; }
+      .search-wrap input { width: 100%; }
+      .matrix-container { padding: 1rem 1rem 3rem; }
+      .tactic-col { width: 140px; }
+      .legend { flex-wrap: wrap; font-size: 11px; }
+      #heatmap-container { padding: 1rem; }
+      #severity-heatmap { gap: 4px; }
+      #severity-heatmap > div { min-width: 100px; padding: 8px; }
+      .detail-panel { width: 100%; }
+      footer { flex-direction: column; }
+    }
+    
+    @media (max-width: 480px) {
+      nav { padding: 0 0.75rem; }
+      .hero { padding: 2rem 0.75rem 1.5rem; }
+      .hero h1 { font-size: clamp(1.25rem, 3vw, 2rem); }
+      .hero-logo { height: 80px; }
+      .hero p { font-size: 13px; }
+      .toolbar { padding: 0.5rem 0.75rem; }
+      .toolbar-left { gap: 0.5rem; }
+      .chip { font-size: 11px; padding: 3px 8px; }
+      .hero-stats { gap: 1rem; }
+      .stat-num { font-size: 18px; }
+      .stat-label { font-size: 10px; }
+      .matrix-container { padding: 0.75rem; overflow-x: auto; }
+      .tactic-col { width: 130px; }
+      .tech-card { padding: 6px 8px; }
+      .tech-id { font-size: 8px; }
+      .tech-name { font-size: 10px; }
+      .legend { font-size: 10px; padding: 0.5rem 0.75rem; }
+      #heatmap-container { padding: 0.75rem; }
+      #severity-heatmap > div { min-width: 90px; padding: 6px; font-size: 10px; }
+      footer { font-size: 11px; padding: 1rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="home.html">
+    <img src="logo/logo.png" alt="Arachne logo" class="nav-logo-img" />
+    <span class="brand">Arachne</span>
+  </a>
+  <div class="nav-links">
+    <a href="home.html">Home</a>
+    <span class="nav-badge">v0.1.0</span>
+    <a href="matrix.html">Matriz</a>
+    <a href="https://github.com/SEU_USUARIO/arachne" target="_blank">GitHub</a>
+    <a href="https://github.com/SEU_USUARIO/arachne/blob/main/CONTRIBUTING.md" target="_blank">Contribuir</a>
+  </div>
+</nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <img class="hero-logo" src="logo/logo.png" alt="Arachne" />
+      <h1>Web Application Attack Matrix</h1>
+      <p class="lead">Mapa interativo de táticas e técnicas contra aplicações web, com cadeias de ataque, referências e ferramentas para pentesters e defenders. Explore a matriz, construa cadeias e exporte seus cenários.</p>
+      <p><a class="cta" href="matrix.html">Abrir a Matriz</a></p>
+      <div class="hero-stats" id="hero-stats"></div>
+    </div>
+    <aside class="hero-aside">
+      <div class="profile-card">
+        <img class="avatar" src="https://avatars.githubusercontent.com/u/246133294?v=4" alt="Lucas Marchesin" />
+        <h3>Lucas Marchesin</h3>
+        <div class="muted">Cybersecurity Specialist — IPV7</div>
+
+        <div style="margin-top:10px;text-align:left">
+          <div style="font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between;color:var(--muted)">
+            <span>Certificação</span><span>Emissor</span>
+          </div>
+          <table class="cert-table">
+            <tr><td>🔴 CRTOM — Certified Red Team Operations Manager</td><td>Red Team Leaders</td></tr>
+            <tr><td>📊 CGRCA — Certified Governance Risk and Compliance Analyst</td><td>Hack &amp; Fix</td></tr>
+            <tr><td>🎯 CPPS — Certified Phishing Prevention Specialist</td><td>Hack &amp; Fix</td></tr>
+            <tr><td>⚔️ CRTA — Certified Red Team Analyst</td><td>CyberWarfare Labs</td></tr>
+            <tr><td>🖥️ Hacking Active Directory</td><td>Simply Cyber</td></tr>
+            <tr><td>🐍 Python</td><td>CySource Brasil</td></tr>
+            <tr><td>🐧 Linux</td><td>CySource Brasil</td></tr>
+          </table>
+        </div>
+
+        <p class="bio">Profissional de segurança da informação com foco em Red Team, Pentest e GRC. Apaixonado por explorar vulnerabilidades, fortalecer defesas e ir além do convencional.</p>
+        <p style="margin-top:12px"><a class="cta" style="background:transparent;color:var(--accent);box-shadow:none;padding:8px 12px;border-radius:10px;border:1px solid rgba(167,139,250,0.12)" href="https://github.com/0x13-ByteZer0" target="_blank">Ver repositórios</a></p>
+      </div>
+    </aside>
+  </header>
+
+<div class="toolbar">
+  <div class="toolbar-left">
+    <button class="chip active" id="btn-view-matrix" onclick="toggleView('matrix')" style="margin-right: 1rem;">📊 Matrix View</button>
+    <button class="chip" id="btn-view-chains" onclick="toggleView('chains')">🔗 Attack Chains</button>
+    <button class="chip active" id="btn-subs" onclick="toggleSubs()" style="margin-left: 1rem;">Sub-técnicas</button>
+    <div class="filter-group" style="border-left: 0.5px solid var(--border); padding-left: 1rem; margin-left: 1rem;">
+      <button class="chip" onclick="filterTactic('all')" id="ftactic-all" style="background:rgba(124,92,252,0.15);border-color:rgba(124,92,252,0.4);color:var(--accent2)">Todas as táticas</button>
+      <span id="tactic-filter-buttons"></span>
+    </div>
+    <div style="border-left: 0.5px solid var(--border); padding-left: 1rem; margin-left: 1rem;">
+      <button class="chip" onclick="filterSeverity(4)" id="f4">Crítico</button>
+      <button class="chip" onclick="filterSeverity(3)" id="f3">Alto</button>
+      <button class="chip" onclick="filterSeverity(2)" id="f2">Médio</button>
+      <button class="chip" onclick="filterSeverity(1)" id="f1">Baixo</button>
+      <button class="chip" onclick="filterSeverity(0)" id="f0">Todos</button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" placeholder="Buscar técnica..." id="search-input" oninput="doSearch(this.value)" />
+  </div>
+</div>
+
+<div class="legend">
+  <span class="legend-label">Severidade:</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#f87171"></span>Crítica</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#fb923c"></span>Alta</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#fbbf24"></span>Média</span>
+  <span class="legend-item"><span class="sev-dot" style="background:#60a5fa"></span>Baixa</span>
+</div>
+
+<div id="heatmap-container" style="padding: 1.5rem 2rem; border-bottom: 0.5px solid var(--border);">
+  <div style="margin-bottom: 1rem;">
+    <div style="font-family: var(--mono); font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem;">Mapa de Severidade por Tática</div>
+    <div id="severity-heatmap" style="display: flex; gap: 2px; flex-wrap: wrap;"></div>
+  </div>
+</div>
+
+<div class="matrix-container" id="matrix-container">
+  <div class="matrix-grid" id="matrix-grid"></div>
+</div>
+
+<div id="chains-container" style="display: none; padding: 2rem;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <h2 style="font-size: 24px; margin-bottom: 2rem; color: var(--accent2);">🔗 Cadeias de Ataque Completas</h2>
+    <div id="chains-list" style="display: grid; gap: 2rem;"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+
+<footer>
+  <p>Arachne © 2025 — Licenciado sob MIT (código) e CC BY 4.0 (conteúdo)</p>
+  <div class="footer-links">
+    <a href="https://github.com/SEU_USUARIO/arachne" target="_blank">GitHub</a>
+    <a href="https://github.com/SEU_USUARIO/arachne/blob/main/CONTRIBUTING.md" target="_blank">Contribuir</a>
+    <a href="https://owasp.org" target="_blank">OWASP</a>
+  </div>
+</footer>
+
+<script src="techniques.js"></script>
+<script src="matrix.js"></script>
+<script>window.addEventListener('load', function(){ if(typeof bootMatrix === 'function') bootMatrix(); });</script>
+</body>
+</html>

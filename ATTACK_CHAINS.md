@@ -205,6 +205,84 @@ Para cada cadeia, bloquear em **múltiplos pontos**:
 
 ---
 
+## Como montar uma Cadeia de Ataque
+
+Siga estes passos concisos para criar uma cadeia de ataque útil, reprodutível e acionável:
+
+- **1. Defina o objetivo:** Que impacto o adversário busca (Account takeover, RCE, Data exfiltration).
+- **2. Mapeie técnicas relevantes:** Use os códigos `W###` em `techniques.js` para escolher técnicas aplicáveis.
+- **3. Ordene por pré-requisitos:** Coloque técnicas que habilitam outras (ex.: Recon → Discovery → Exploit).
+- **4. Estime duração e dificuldade:** Para cada etapa defina `duration` e `difficulty` realistas.
+- **5. Documente mitigação e detecção:** Para cada etapa liste controles que bloqueiam ou detectam o passo.
+- **6. Teste e refine:** Simule a sequência em ambiente controlado e corrija estimativas/pontos frágeis.
+
+Modelo mínimo (JSON):
+
+```
+{
+  "id": "CHAIN-XXX",
+  "name": "Nome da cadeia",
+  "description": "Resumo do objetivo",
+  "techniques": ["W001","W007","W022"],
+  "difficulty": "Intermediário",
+  "timeframe": "2-4 semanas",
+  "impact": "RCE",
+  "steps": [
+    {"order":1, "technique":"W001", "action":"Fingerprinting", "description":"...", "duration":"1-3 dias"}
+  ]
+}
+```
+
+Use o arquivo `techniques.js` como referência autoritativa das técnicas (`id`, `name`, `mitigations`).
+
+---
+
+## Cadeias Adicionais (novas)
+
+### 11. Recon → API Abuse → Data Exfiltration
+- **Dificuldade:** Intermediário
+- **Timeframe:** 1-3 semanas
+- **Impacto:** Data Exfiltration — Extração massiva de dados via API
+- **Técnicas:** W001 → W002 → W017 → W062 → W061
+- **Fluxo:** Fingerprinting → Mapear endpoints → Scraping/GraphQL introspection → Extração blind/time-based → Exfil via headers/metadata
+
+---
+
+### 12. SSRF → Cloud Metadata → Container Escape
+- **Dificuldade:** Avançado
+- **Timeframe:** 2-5 semanas
+- **Impacto:** Escalada para infra interna / container escape
+- **Técnicas:** W018 → W055 → W084
+- **Fluxo:** Identificar endpoint que aceita URL → Forçar requisições internas (metadata 169.254) → Usar credenciais para abuso API interno → Buscar vetores de escape de container
+
+---
+
+### 13. Webshell → C2 → Persistence → Data Sabotage
+- **Dificuldade:** Intermediário
+- **Timeframe:** 1-4 semanas
+- **Impacto:** Acesso persistente e possível sabotagem de dados
+- **Técnicas:** W050 → W063 → W054 → W039
+- **Fluxo:** Upload/implantação de webshell → Estabelecer C2 → Criar stored procedures/backdoors no DB → Sabotar/cripto dados
+
+---
+
+### 14. Initial Compromise → API-to-API Abuse → Lateral Movement
+- **Dificuldade:** Intermediário
+- **Timeframe:** 2-4 semanas
+- **Impacto:** Movimentação lateral e acesso a múltiplos serviços
+- **Técnicas:** W050 → W055 → W056 → W059
+- **Fluxo:** Comprometer serviço/conta → Usar tokens para chamar APIs internas → Escalar privilégios no DB → Acessar dados de outros tenants
+
+---
+
+### 15. Blind Extraction → Covert Channel Exfiltration
+- **Dificuldade:** Intermediário
+- **Timeframe:** 1-3 semanas
+- **Impacto:** Exfiltração furtiva de dados
+- **Técnicas:** W062 → W060 → W061 → W017
+- **Fluxo:** Extração via timing/boolean blind → Encapsular dados em DNS queries → Enviar através de headers/metadata → Agregar via API scraping
+
+
 ## Referencias
 
 Cadeias baseadas em:

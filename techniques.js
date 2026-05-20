@@ -1407,5 +1407,81 @@ const attackChains = [
       }
     ]
   }
+  ,
+  {
+    id: "CHAIN-011",
+    name: "Recon → API Abuse → Data Exfiltration",
+    description: "Extração massiva de dados via APIs públicas/GraphQL",
+    techniques: ["W001", "W002", "W017", "W062", "W061"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "Data Exfiltration - Exfiltração em larga escala",
+    steps: [
+      { order: 1, technique: "W001", action: "Fingerprinting", description: "Identificar stack e endpoints expostos", duration: "1-3 dias" },
+      { order: 2, technique: "W002", action: "Mapeamento de endpoints", description: "Descobrir endpoints e parâmetros vulneráveis", duration: "2-5 dias" },
+      { order: 3, technique: "W017", action: "API scraping / GraphQL introspection", description: "Coletar campos e endpoints sensíveis", duration: "1-4 dias" },
+      { order: 4, technique: "W062", action: "Blind extraction", description: "Extrair dados usando técnicas blind/time-based se necessário", duration: "1-3 dias" },
+      { order: 5, technique: "W061", action: "Exfiltration via HTTP metadata", description: "Encaminhar dados por headers ou canais covert", duration: "Contínuo" }
+    ]
+  },
+  {
+    id: "CHAIN-012",
+    name: "SSRF → Cloud Metadata → Container Escape",
+    description: "Uso de SSRF para recuperar credenciais internas e escalar para escapes de container/sandbox",
+    techniques: ["W018", "W055", "W084"],
+    difficulty: "Avançado",
+    timeframe: "2-5 semanas",
+    impact: "Escalada para infra interna / container escape",
+    steps: [
+      { order: 1, technique: "W018", action: "SSRF discovery", description: "Encontrar endpoints que aceitam URLs e forçar requests internas (metadata)", duration: "1-4 dias" },
+      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar credenciais temporárias para chamar APIs internas e mover-se lateralmente", duration: "2-7 dias" },
+      { order: 3, technique: "W084", action: "Container/Sandbox escape", description: "Explorar misconfigurations ou vulnerabilidades para escapar do container", duration: "1-7 dias" }
+    ]
+  },
+  {
+    id: "CHAIN-013",
+    name: "Webshell → C2 → Persistence → Data Sabotage",
+    description: "Pós-exploração com implantação de webshell, C2, persistência e sabotagem de dados",
+    techniques: ["W050", "W063", "W054", "W039"],
+    difficulty: "Intermediário",
+    timeframe: "1-4 semanas",
+    impact: "Acesso persistente e possível sabotagem de dados",
+    steps: [
+      { order: 1, technique: "W050", action: "Webshell deployment", description: "Implantar webshell via upload ou RCE", duration: "1-3 dias" },
+      { order: 2, technique: "W063", action: "C2 establishment", description: "Estabelecer canal de comando e controle via HTTP/HTTPS", duration: "1-7 dias" },
+      { order: 3, technique: "W054", action: "Database backdoor", description: "Criar stored procedures/mecanismos para persistência no DB", duration: "1-5 dias" },
+      { order: 4, technique: "W039", action: "Data sabotage", description: "Modificar ou destruir dados críticos (ransom/sabotage)", duration: "1-3 dias" }
+    ]
+  },
+  {
+    id: "CHAIN-014",
+    name: "Initial Compromise → API-to-API Abuse → Lateral Movement",
+    description: "Movimentação lateral em ambientes de microserviços através de abuso de tokens e privilégios",
+    techniques: ["W050", "W055", "W056", "W059"],
+    difficulty: "Intermediário",
+    timeframe: "2-4 semanas",
+    impact: "Movimentação lateral e acesso a múltiplos serviços",
+    steps: [
+      { order: 1, technique: "W050", action: "Initial compromise", description: "Obter execução ou credenciais iniciais (webshell/creds)", duration: "1-5 dias" },
+      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar tokens/credentials para chamar APIs internas e descobrir confiança implícita", duration: "2-6 dias" },
+      { order: 3, technique: "W056", action: "DB privilege escalation", description: "Escalonar privilégios dentro do banco de dados para acessar mais dados", duration: "1-4 dias" },
+      { order: 4, technique: "W059", action: "Multi-tenant access", description: "Explorar isolamento fraco para acessar dados de outros tenants", duration: "1-3 dias" }
+    ]
+  },
+  {
+    id: "CHAIN-015",
+    name: "Blind Extraction → Covert Channel Exfiltration",
+    description: "Extração furtiva usando canais covert (DNS, headers) após extração blind",
+    techniques: ["W062", "W060", "W061", "W017"],
+    difficulty: "Intermediário",
+    timeframe: "1-3 semanas",
+    impact: "Exfiltração furtiva de dados",
+    steps: [
+      { order: 1, technique: "W062", action: "Blind extraction", description: "Extrair dados via timing/boolean-based se não houver feedback direto", duration: "1-4 dias" },
+      { order: 2, technique: "W060", action: "DNS tunneling", description: "Encapsular e enviar dados via queries DNS a servidores controlados", duration: "1-3 dias" },
+      { order: 3, technique: "W061", action: "HTTP metadata exfiltration", description: "Usar headers ou user-agent para enviar fragmentos de dados", duration: "Contínuo" },
+      { order: 4, technique: "W017", action: "API aggregation", description: "Agregação final via API scraping/collection", duration: "1-2 dias" }
+    ]
+  }
 ];
 
