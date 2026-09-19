@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arachne — Attack Graph</title>
+  <link rel="icon" href="logo/logo.png" type="image/png" />
+  <link rel="shortcut icon" href="logo/logo.png" type="image/png" />
+  <meta name="description" content="Grafo interativo de táticas e técnicas de ataque a aplicações web. Visualize cadeias de ataque como caminhos no grafo." />
+  <meta property="og:title" content="Arachne — Attack Graph" />
+  <meta property="og:description" content="Visualização em grafo de técnicas de ataque web e cadeias de ataque, inspirada em BloodHound." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #0f1116;
+      --bg3: #18181f;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --accent: #7c5cfc;
+      --accent2: #a78bfa;
+      --muted: #9aa0b6;
+      --text: #e8e8f0;
+      --text2: #cbd5e1;
+      --text3: #9aa6b2;
+      --mono: 'Space Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --radius: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: radial-gradient(1200px 600px at 50% -10%, rgba(124,92,252,0.08), transparent 60%), var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ===== NAV ===== */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.25rem; height: 56px;
+      background: rgba(10,10,15,0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-img { height: 28px; border-radius: 5px; }
+    .brand { font-family: var(--mono); font-weight: 700; font-size: 15px; color: var(--text); }
+    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 13px;
+      padding: 7px 12px; border-radius: 8px; transition: all .15s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(124,92,252,0.08); }
+    .nav-links a.active { color: var(--accent2); background: rgba(124,92,252,0.12); }
+    .nav-badge {
+      font-family: var(--mono); font-size: 10px;
+      padding: 2px 8px; border-radius: 3px;
+      background: rgba(124,92,252,0.15); color: var(--accent2);
+      border: 1px solid rgba(124,92,252,0.3);
+    }
+
+    /* ===== LAYOUT ===== */
+    .app {
+      display: grid;
+      grid-template-columns: 300px 1fr 340px;
+      grid-template-rows: 56px 1fr;
+      height: 100vh;
+      padding-top: 56px;
+    }
+
+    /* ===== SIDEBAR (left) ===== */
+    .sidebar {
+      border-right: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .side-section { }
+    .side-title {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .side-title .count {
+      font-size: 10px; color: var(--muted); background: rgba(255,255,255,0.04);
+      padding: 1px 7px; border-radius: 999px;
+    }
+
+    .search-box { position: relative; }
+    .search-box input {
+      width: 100%; padding: 9px 12px 9px 32px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; color: var(--text); font-size: 13px;
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .search-box input:focus { border-color: rgba(124,92,252,0.5); box-shadow: 0 0 0 3px rgba(124,92,252,0.12); }
+    .search-box .icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--text3); font-size: 13px; pointer-events: none;
+    }
+
+    .tactic-list { display: flex; flex-direction: column; gap: 4px; }
+    .tactic-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 9px; border-radius: 7px; cursor: pointer;
+      border: 1px solid transparent; transition: all .13s;
+      font-size: 12.5px; color: var(--text2);
+    }
+    .tactic-item:hover { background: rgba(255,255,255,0.03); }
+    .tactic-item.active { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); color: var(--text); }
+    .tactic-item .dot { width: 9px; height: 9px; border-radius: 999px; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+    .tactic-item .tname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tactic-item .tnum { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+    .tactic-item.dimmed { opacity: 0.35; }
+
+    .chain-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+    .chain-item {
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+      transition: all .13s;
+    }
+    .chain-item:hover { border-color: rgba(124,92,252,0.4); background: rgba(124,92,252,0.06); }
+    .chain-item.active { border-color: var(--accent); background: rgba(124,92,252,0.14); box-shadow: 0 0 0 3px rgba(124,92,252,0.1); }
+    .chain-item .c-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .chain-item .c-meta { font-size: 10.5px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: all .14s; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03); color: var(--text2);
+      font-family: var(--sans);
+    }
+    .btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .btn.primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #fff; border-color: transparent;
+      box-shadow: 0 6px 20px rgba(124,92,252,0.25);
+    }
+    .btn.primary:hover { filter: brightness(1.1); }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-row .btn { flex: 1; }
+
+    .mode-note {
+      font-size: 11px; color: var(--text3); line-height: 1.5;
+      background: rgba(124,92,252,0.06); border: 1px solid rgba(124,92,252,0.15);
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .mode-note b { color: var(--accent2); }
+
+    /* ===== GRAPH AREA ===== */
+    .graph-area {
+      position: relative; overflow: hidden;
+      background:
+        radial-gradient(900px 500px at 30% 20%, rgba(124,92,252,0.05), transparent 60%),
+        radial-gradient(700px 500px at 80% 80%, rgba(244,114,182,0.04), transparent 60%),
+        var(--bg);
+    }
+    #graph-canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+    #graph-canvas.dragging { cursor: grabbing; }
+
+    .graph-hud {
+      position: absolute; top: 12px; left: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .hud-card {
+      pointer-events: auto;
+      background: rgba(10,10,15,0.8); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .hud-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+    .hud-stats { display: flex; gap: 14px; }
+    .hud-stat { display: flex; flex-direction: column; }
+    .hud-stat .n { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--text); }
+    .hud-stat .l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .zoom-controls {
+      position: absolute; bottom: 14px; left: 12px; z-index: 10;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .zoom-controls button {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: rgba(10,10,15,0.8); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text2); font-size: 15px; cursor: pointer;
+      transition: all .13s;
+    }
+    .zoom-controls button:hover { background: rgba(124,92,252,0.15); color: var(--text); border-color: rgba(124,92,252,0.4); }
+
+    .graph-legend {
+      position: absolute; bottom: 14px; right: 12px; z-index: 10;
+      background: rgba(10,10,15,0.8); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      max-width: 220px;
+    }
+    .graph-legend .lg-title { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 2px; }
+    .graph-legend .lg-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text2); }
+    .graph-legend .lg-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+    .graph-legend .lg-line { width: 18px; height: 0; border-top: 2px solid; flex-shrink: 0; }
+
+    /* ===== DETAIL PANEL (right) ===== */
+    .detail {
+      border-left: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .detail-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; text-align: center; color: var(--text3); gap: 12px; padding: 20px;
+    }
+    .detail-empty .big { font-size: 40px; opacity: 0.5; }
+    .detail-empty p { font-size: 13px; line-height: 1.6; max-width: 220px; }
+
+    .d-id { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+    .d-title { font-size: 19px; font-weight: 700; margin: 4px 0 10px; line-height: 1.3; }
+    .d-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 7px;
+      font-size: 11.5px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .d-section { margin-bottom: 14px; }
+    .d-section-title {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 6px;
+    }
+    .d-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag {
+      display: inline-block; padding: 4px 9px; border-radius: 6px;
+      font-size: 11.5px; color: var(--text2);
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .tag.green { color: #4ade80; border-color: rgba(74,222,128,0.25); background: rgba(74,222,128,0.05); }
+    .tag.blue { color: #60a5fa; border-color: rgba(96,165,250,0.25); background: rgba(96,165,250,0.05); }
+    .tag.chain { color: var(--accent2); border-color: rgba(124,92,252,0.3); background: rgba(124,92,252,0.07); cursor: pointer; }
+    .tag.chain:hover { background: rgba(124,92,252,0.15); }
+
+    .sev-meter { display: flex; gap: 4px; }
+    .sev-bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .sev-fill { height: 100%; border-radius: 3px; }
+
+    .path-steps { display: flex; flex-direction: column; gap: 0; }
+    .path-step {
+      display: flex; gap: 10px; position: relative; padding-bottom: 12px;
+    }
+    .path-step:last-child { padding-bottom: 0; }
+    .path-step .rail {
+      display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+    }
+    .path-step .rail .node-dot {
+      width: 26px; height: 26px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 9px; font-weight: 700; color: #fff;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .path-step .rail .line { width: 2px; flex: 1; background: rgba(255,255,255,0.1); margin-top: 3px; }
+    .path-step:last-child .rail .line { display: none; }
+    .path-step .p-body { min-width: 0; padding-top: 2px; }
+    .path-step .p-tech { font-family: var(--mono); font-size: 10.5px; color: var(--text3); }
+    .path-step .p-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .path-step .p-action { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .path-step .p-dur { font-size: 10.5px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+
+    .chain-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .chain-meta .cm {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .chain-meta .cm .k { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+    .chain-meta .cm .v { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 2px; }
+
+    /* ===== TOOLTIP ===== */
+    .tooltip {
+      position: fixed; z-index: 100; pointer-events: none;
+      background: rgba(10,10,15,0.95); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 8px 11px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      max-width: 260px;
+      opacity: 0; transition: opacity .12s;
+    }
+    .tooltip.show { opacity: 1; }
+    .tooltip .tt-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+    .tooltip .tt-name { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 1px; }
+    .tooltip .tt-tactic { font-size: 11px; margin-top: 3px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 260px 1fr; }
+      .detail { display: none; }
+    }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(124,92,252,0.25); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(124,92,252,0.4); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="home.html">
+    <img src="logo/logo.png" alt="Arachne logo" class="nav-logo-img" />
+    <span class="brand">Arachne</span>
+  </a>
+  <div class="nav-links">
+    <a href="home.html">Home</a>
+    <a href="matrix.html">Matriz</a>
+    <a href="graph.html" class="active">Grafo</a>
+    <span class="nav-badge">v0.1.0</span>
+    <a href="https://github.com/SEU_USUARIO/arachne" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="side-section">
+      <div class="side-title">Buscar técnica <span class="count" id="search-count"></span></div>
+      <div class="search-box">
+        <span class="icon">⌕</span>
+        <input type="text" id="graph-search" placeholder="Nome, ID ou descrição..." autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">Táticas <span class="count" id="tactic-count"></span></div>
+      <div class="tactic-list" id="tactic-list"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">Cadeias de ataque <span class="count" id="chain-count"></span></div>
+      <div class="chain-list" id="chain-list"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">Modo</div>
+      <div class="btn-row" style="margin-bottom:8px">
+        <button class="btn primary" id="btn-mode-graph" onclick="setMode('graph')">🕸️ Grafo</button>
+        <button class="btn" id="btn-mode-path" onclick="setMode('path')">🎯 Caminho</button>
+      </div>
+      <div class="mode-note" id="mode-note">
+        Clique em um <b>nó</b> para ver detalhes. Arraste para mover, use a roda do mouse para zoom.
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">Ações</div>
+      <div class="btn-row">
+        <button class="btn" onclick="resetView()">↺ Resetar vista</button>
+        <button class="btn" onclick="clearSelection()">✕ Limpar</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== GRAPH ===== -->
+  <main class="graph-area" id="graph-area">
+    <canvas id="graph-canvas"></canvas>
+
+    <div class="graph-hud">
+      <div class="hud-card">
+        <div class="hud-title">Attack Graph</div>
+        <div class="hud-stats">
+          <div class="hud-stat"><span class="n" id="hud-nodes">0</span><span class="l">Nós</span></div>
+          <div class="hud-stat"><span class="n" id="hud-edges">0</span><span class="l">Arestas</span></div>
+          <div class="hud-stat"><span class="n" id="hud-chains">0</span><span class="l">Cadeias</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zoom-controls">
+      <button onclick="zoomBy(1.25)" title="Zoom in">+</button>
+      <button onclick="zoomBy(0.8)" title="Zoom out">−</button>
+      <button onclick="resetView()" title="Resetar">⌂</button>
+    </div>
+
+    <div class="graph-legend" id="graph-legend">
+      <div class="lg-title">Legenda</div>
+      <div id="legend-items"></div>
+    </div>
+  </main>
+
+  <!-- ===== DETAIL ===== -->
+  <aside class="detail" id="detail-panel">
+    <div class="detail-empty" id="detail-empty">
+      <div class="big">⬡</div>
+      <p>Selecione um nó no grafo para ver os detalhes da técnica, ou clique em uma cadeia para destacar o caminho de ataque.</p>
+    </div>
+    <div id="detail-content" style="display:none"></div>
+  </aside>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="techniques.js"></script>
+<script src="graph.js"></script>
+</body>
+</html>
