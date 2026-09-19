@@ -1,0 +1,26 @@
+{
+  "name": "arachne-api",
+  "version": "1.0.0",
+  "description": "Arachne — Web Application Attack Matrix. API REST para consumo por SIEM/SOC.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/api.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "attack-matrix",
+    "web-security",
+    "siem",
+    "soc",
+    "stix",
+    "mitre",
+    "api"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}

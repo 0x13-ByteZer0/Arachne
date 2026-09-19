@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O Arachne agora inclui **10 cadeias de ataque pré-mapeadas** que mostram o caminho completo desde o **reconhecimento até a exploração final**, incluindo:
+O Arachne agora inclui **43 cadeias de ataque pré-mapeadas** que mostram o caminho completo desde o **reconhecimento até a exploração final**, incluindo:
 
 - **Sequência de técnicas** necessárias
 - **Duração de cada etapa**
@@ -210,11 +210,12 @@ Para cada cadeia, bloquear em **múltiplos pontos**:
 Siga estes passos concisos para criar uma cadeia de ataque útil, reprodutível e acionável:
 
 - **1. Defina o objetivo:** Que impacto o adversário busca (Account takeover, RCE, Data exfiltration).
-- **2. Mapeie técnicas relevantes:** Use os códigos `W###` em `techniques.js` para escolher técnicas aplicáveis.
-- **3. Ordene por pré-requisitos:** Coloque técnicas que habilitam outras (ex.: Recon → Discovery → Exploit).
-- **4. Estime duração e dificuldade:** Para cada etapa defina `duration` e `difficulty` realistas.
-- **5. Documente mitigação e detecção:** Para cada etapa liste controles que bloqueiam ou detectam o passo.
-- **6. Teste e refine:** Simule a sequência em ambiente controlado e corrija estimativas/pontos frágeis.
+- **2. Defina o ponto de partida (`entry`):** Descreva a condição real que inicia o ataque — pode não ser uma técnica (ex.: "input não sanitizado persistido no banco" para um XSS). Use `label` curto e `description` explicando o vetor.
+- **3. Mapeie técnicas relevantes:** Use os códigos `W###` em `techniques.js` para escolher técnicas aplicáveis.
+- **4. Ordene por pré-requisitos:** Coloque técnicas que habilitam outras (ex.: Recon → Discovery → Exploit).
+- **5. Estime duração e dificuldade:** Para cada etapa defina `duration` e `difficulty` realistas.
+- **6. Documente mitigação e detecção:** Para cada etapa liste 3-4 controles em `mitigations` que bloqueiam ou detectam o passo.
+- **7. Teste e refine:** Simule a sequência em ambiente controlado e corrija estimativas/pontos frágeis.
 
 Modelo mínimo (JSON):
 
@@ -223,15 +224,21 @@ Modelo mínimo (JSON):
   "id": "CHAIN-XXX",
   "name": "Nome da cadeia",
   "description": "Resumo do objetivo",
+  "entry": {
+    "label": "Condição real de partida (pode não ser uma técnica)",
+    "description": "Explicação do vetor que inicia o ataque"
+  },
   "techniques": ["W001","W007","W022"],
   "difficulty": "Intermediário",
   "timeframe": "2-4 semanas",
   "impact": "RCE",
   "steps": [
-    {"order":1, "technique":"W001", "action":"Fingerprinting", "description":"...", "duration":"1-3 dias"}
+    {"order":1, "technique":"W001", "action":"Fingerprinting", "description":"...", "duration":"1-3 dias", "mitigations":["Controle 1","Controle 2","Controle 3"]}
   ]
 }
 ```
+
+> **Nota:** o campo `entry` é exibido no grafo como a seção destacada "Ponto de partida" e cada `mitigations` de passo aparece como tags verdes no detalhe do passo.
 
 Use o arquivo `techniques.js` como referência autoritativa das técnicas (`id`, `name`, `mitigations`).
 
@@ -282,6 +289,32 @@ Use o arquivo `techniques.js` como referência autoritativa das técnicas (`id`,
 - **Técnicas:** W062 → W060 → W061 → W017
 - **Fluxo:** Extração via timing/boolean blind → Encapsular dados em DNS queries → Enviar através de headers/metadata → Agregar via API scraping
 
+
+## Cadeias 24-35
+
+| ID | Cadeia | Tecnicas |
+|---|---|---|
+| CHAIN-024 | OAuth Code Interception -> Open Redirect -> Account Takeover | W013 -> W075 -> W040 |
+| CHAIN-025 | GraphQL Introspection -> API Scraping -> Covert Exfiltration | W064 -> W017 -> W061 |
+| CHAIN-026 | WebSocket Auth Bypass -> Session Theft -> Account Takeover | W078 -> W011 -> W040 |
+| CHAIN-027 | Public Cloud Storage -> SSRF -> Remote Code Execution | W095 -> W018 -> W022 |
+| CHAIN-028 | Prototype Pollution -> Dynamic Template Abuse -> RCE | W081 -> W082 -> W022 |
+| CHAIN-029 | Password Reset Enumeration -> Token Abuse -> Account Takeover | W033 -> W034 -> W040 |
+| CHAIN-030 | Type Juggling -> Authorization Bypass -> Privilege Escalation | W080 -> W015 -> W058 |
+| CHAIN-031 | Rate Limit Bypass -> API Scraping -> Data Exfiltration | W086 -> W017 -> W060 |
+| CHAIN-032 | Compromised Dependency -> Build Execution -> Persistence | W006 -> W051 -> W050 |
+| CHAIN-033 | C2 over HTTP -> DNS Tunneling -> Covert Exfiltration | W063 -> W060 -> W061 |
+| CHAIN-034 | Payload Fragmentation -> Log Evasion -> Blind Injection | W048 -> W088 -> W087 |
+| CHAIN-035 | HTTP Methods Misconfiguration -> File Upload -> Webshell | W069 -> W038 -> W050 |
+
+| CHAIN-036 | SSRF -> Cloud Metadata -> Temporary Credential Abuse | W018 -> W097 -> W055 |
+| CHAIN-037 | Kubernetes RBAC Abuse -> Secret Access -> Container Escape | W099 -> W019 -> W084 |
+| CHAIN-038 | Poisoned Container Image -> Registry Trust -> Production Persistence | W100 -> W051 -> W050 |
+| CHAIN-039 | OIDC Validation Failure -> Cross-Tenant Access -> Privilege Escalation | W102 -> W059 -> W015 |
+| CHAIN-040 | SAML Federation Abuse -> Admin Session -> Data Exfiltration | W101 -> W040 -> W017 |
+| CHAIN-041 | Webhook Replay -> SSRF -> Internal API Abuse | W106 -> W018 -> W055 |
+| CHAIN-042 | LLM Indirect Injection -> Tool Abuse -> Cross-Tenant Leakage | W107 -> W105 -> W108 |
+| CHAIN-043 | SCIM Provisioning Abuse -> MFA Recovery -> Account Takeover | W103 -> W104 -> W040 |
 
 ## Referencias
 

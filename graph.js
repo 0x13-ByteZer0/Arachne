@@ -4,7 +4,8 @@ const graphState = {
   tacticFilter: 'all', search: '', activeChain: null,
   mode: 'graph', startNode: null, endNode: null, path: [],
   scale: 1, panX: 0, panY: 0, dragging: false, dragNode: null,
-  pointer: { x: 0, y: 0 }, animation: 0
+  pointer: { x: 0, y: 0 }, pointerMoved: false, pressedNode: null,
+  hasCanvasPosition: false, hoverNodeId: null
 };
 
 const canvas = document.getElementById('graph-canvas');
@@ -95,7 +96,7 @@ function buildChainList() {
 function buildLegend() {
   const legend = document.getElementById('legend-items');
   legend.innerHTML = '';
-  tactics.slice(0, 8).forEach(tactic => {
+  tactics.forEach(tactic => {
     legend.insertAdjacentHTML('beforeend', `<div class="lg-item"><span class="lg-dot" style="background:${tactic.color}"></span>${escapeHtml(tactic.name)}</div>`);
   });
   legend.insertAdjacentHTML('beforeend', '<div class="lg-item"><span class="lg-line" style="border-color:#a78bfa"></span>relação de cadeia</div>');
@@ -103,8 +104,8 @@ function buildLegend() {
 
 function setTacticFilter(tacticId) {
   graphState.tacticFilter = tacticId;
-  graphState.activeChain = null;
-  graphState.path = [];
+  clearFocusedState();
+  showEmptyDetail();
   document.querySelectorAll('.tactic-item').forEach(item => item.classList.toggle('active', item.dataset.tactic === tacticId));
   document.querySelectorAll('.chain-item').forEach(item => item.classList.remove('active'));
   applyFilters();
@@ -122,11 +123,23 @@ function applyFilters() {
   draw();
 }
 
-function setMode(mode) {
-  graphState.mode = mode;
+function clearFocusedState() {
+  graphState.activeChain = null;
   graphState.startNode = null;
   graphState.endNode = null;
   graphState.path = [];
+  document.querySelectorAll('.chain-item').forEach(item => item.classList.remove('active'));
+}
+
+function showEmptyDetail() {
+  document.getElementById('detail-empty').style.display = 'flex';
+  document.getElementById('detail-content').style.display = 'none';
+}
+
+function setMode(mode) {
+  graphState.mode = mode;
+  clearFocusedState();
+  showEmptyDetail();
   document.getElementById('btn-mode-graph').classList.toggle('primary', mode === 'graph');
   document.getElementById('btn-mode-path').classList.toggle('primary', mode === 'path');
   document.getElementById('mode-note').innerHTML = mode === 'path'
@@ -137,14 +150,24 @@ function setMode(mode) {
 
 function selectChain(chainId) {
   graphState.activeChain = graphState.chains.find(chain => chain.id === chainId) || null;
-  graphState.path = graphState.activeChain ? graphState.activeChain.techniques : [];
+  graphState.startNode = null;
+  graphState.endNode = null;
+  graphState.path = graphState.activeChain ? normalizePath(graphState.activeChain.techniques) : [];
+  graphState.tacticFilter = 'all';
+  graphState.search = '';
+  document.getElementById('graph-search').value = '';
+  document.querySelectorAll('.tactic-item').forEach(item => item.classList.toggle('active', item.dataset.tactic === 'all'));
+  applyFilters();
   document.querySelectorAll('.chain-item').forEach(item => item.classList.toggle('active', item.dataset.chain === chainId));
   if (graphState.activeChain) showChainDetails(graphState.activeChain);
   draw();
 }
 
 function findNode(id) { return graphState.nodes.find(node => node.id === id); }
-function edgeKey(source, target) { return `${source}>${target}`; }
+
+function normalizePath(ids) {
+  return (ids || []).filter((id, index, sequence) => id && id !== sequence[index - 1] && findNode(id));
+}
 
 function findShortestPath(startId, endId) {
   const queue = [startId];
@@ -152,7 +175,10 @@ function findShortestPath(startId, endId) {
   while (queue.length) {
     const current = queue.shift();
     if (current === endId) break;
-    graphState.edges.filter(edge => edge.source === current).forEach(edge => {
+    graphState.edges.filter(edge => {
+      const target = findNode(edge.target);
+      return edge.source === current && target && !target.hidden;
+    }).forEach(edge => {
       if (!previous.has(edge.target)) { previous.set(edge.target, current); queue.push(edge.target); }
     });
   }
@@ -164,6 +190,8 @@ function findShortestPath(startId, endId) {
 
 function selectNode(node) {
   if (graphState.mode === 'path') {
+    graphState.activeChain = null;
+    document.querySelectorAll('.chain-item').forEach(item => item.classList.remove('active'));
     if (!graphState.startNode || graphState.endNode) {
       graphState.startNode = node.id;
       graphState.endNode = null;
@@ -173,9 +201,19 @@ function selectNode(node) {
       graphState.endNode = node.id;
       graphState.path = findShortestPath(graphState.startNode, graphState.endNode);
       if (graphState.path.length) showPathDetails(graphState.path);
-      else showPathPrompt(node, 'nenhum caminho direcionado encontrado');
+      else {
+        graphState.endNode = null;
+        graphState.path = [graphState.startNode];
+        showPathPrompt(node, 'nenhum caminho direcionado encontrado');
+      }
     }
   } else {
+    const relatedChains = graphState.chains.filter(chain => (chain.techniques || []).includes(node.id));
+    if (relatedChains.length === 1) {
+      selectChain(relatedChains[0].id);
+      return;
+    }
+    clearFocusedState();
     showTechniqueDetails(node);
   }
   draw();
@@ -196,6 +234,8 @@ function showTechniqueDetails(node) {
     <div class="d-section"><div class="d-section-title">Severidade</div><div class="sev-meter">${[1,2,3,4].map(level => `<div class="sev-bar"><div class="sev-fill" style="width:${level <= tech.severity ? 100 : 0}%;background:${color}"></div></div>`).join('')}</div></div>
     <div class="d-section"><div class="d-section-title">Sub-técnicas</div><div class="tag-list">${(tech.subs || []).map(sub => `<span class="tag">${escapeHtml(sub)}</span>`).join('')}</div></div>
     <div class="d-section"><div class="d-section-title">Mitigações</div><div class="tag-list">${(tech.mitigations || []).map(item => `<span class="tag green">${escapeHtml(item)}</span>`).join('')}</div></div>
+    ${tech.detection ? `<div class="d-section"><div class="d-section-title">Detecção e telemetria</div><div class="tag-list">${tech.detection.map(item => `<span class="tag blue">${escapeHtml(item)}</span>`).join('')}</div></div>` : ''}
+    ${tech.tools ? `<div class="d-section"><div class="d-section-title">Ferramentas e referências operacionais</div><div class="tag-list">${tech.tools.map(item => `<span class="tag">${escapeHtml(item)}</span>`).join('')}</div></div>` : ''}
     <div class="d-section"><div class="d-section-title">Cadeias relacionadas</div><div class="tag-list">${chainTags.length ? chainTags.map(chain => `<span class="tag chain" data-chain-detail="${escapeHtml(chain.id)}">${escapeHtml(chain.id)}</span>`).join('') : '<span class="d-desc">Nenhuma cadeia cadastrada.</span>'}</div></div>
   `;
   content.querySelectorAll('[data-chain-detail]').forEach(item => item.onclick = () => selectChain(item.dataset.chainDetail));
@@ -205,19 +245,43 @@ function showChainDetails(chain) {
   document.getElementById('detail-empty').style.display = 'none';
   const content = document.getElementById('detail-content');
   content.style.display = 'block';
+  const entry = chain.entry;
   content.innerHTML = `
     <div class="d-id">${escapeHtml(chain.id)}</div>
     <div class="d-title" style="color:var(--accent2)">${escapeHtml(chain.name)}</div>
     <div class="chain-meta"><div class="cm"><div class="k">Dificuldade</div><div class="v">${escapeHtml(chain.difficulty)}</div></div><div class="cm"><div class="k">Prazo</div><div class="v">${escapeHtml(chain.timeframe)}</div></div></div>
+    ${entry ? `<div class="d-section entry-section"><div class="d-section-title">Ponto de partida</div><div class="entry-label">${escapeHtml(entry.label)}</div><div class="d-desc">${escapeHtml(entry.description || '')}</div></div>` : ''}
     <div class="d-section"><div class="d-section-title">Objetivo</div><div class="d-desc">${escapeHtml(chain.description)}</div></div>
-    <div class="d-section"><div class="d-section-title">Caminho no grafo</div><div class="path-steps">${(chain.steps || []).map(step => renderPathStep(step)).join('')}</div></div>
+    <div class="d-section"><div class="d-section-title">Caminho no grafo <span class="hint">clique em um passo para detalhar</span></div><div class="path-steps">${(chain.steps || []).map((step, index) => renderPathStep(step, index, true)).join('')}</div></div>
     <div class="d-section"><div class="d-section-title">Impacto</div><div class="d-desc">${escapeHtml(chain.impact)}</div></div>`;
+  content.querySelectorAll('[data-step-detail]').forEach(item => item.onclick = () => showStepDetails(chain, item.dataset.stepDetail));
 }
 
-function renderPathStep(step) {
+function showStepDetails(chain, index) {
+  const step = (chain.steps || [])[Number(index)];
+  if (!step) return;
   const node = findNode(step.technique);
   const color = node ? node.tactic.color : 'var(--accent)';
-  return `<div class="path-step"><div class="rail"><div class="node-dot" style="background:${color}">${escapeHtml(step.order)}</div><div class="line"></div></div><div class="p-body"><div class="p-tech">${escapeHtml(step.technique)}</div><div class="p-name">${escapeHtml(step.action)}</div><div class="p-action">${escapeHtml(step.description || '')}</div><div class="p-dur">${escapeHtml(step.duration || '')}</div></div></div>`;
+  document.getElementById('detail-empty').style.display = 'none';
+  const content = document.getElementById('detail-content');
+  content.style.display = 'block';
+  content.innerHTML = `
+    <div class="d-id">${escapeHtml(chain.id)} · PASSO ${escapeHtml(step.order)}</div>
+    <div class="d-title" style="color:${color}">${escapeHtml(step.action)}</div>
+    <div class="d-badges"><span class="badge" style="color:${color};border-color:${color}55">${escapeHtml(step.technique)}</span>${node ? `<span class="badge" style="color:${node.tactic.color};border-color:${node.tactic.color}55">${escapeHtml(node.tactic.name)}</span>` : ''}</div>
+    <div class="d-section"><div class="d-section-title">O que acontece</div><div class="d-desc">${escapeHtml(step.description || '')}</div></div>
+    <div class="d-section"><div class="d-section-title">Tempo estimado</div><div class="d-desc">${escapeHtml(step.duration || '—')}</div></div>
+    ${step.mitigations && step.mitigations.length ? `<div class="d-section"><div class="d-section-title">Mitigações deste passo</div><div class="tag-list">${step.mitigations.map(item => `<span class="tag green">${escapeHtml(item)}</span>`).join('')}</div></div>` : ''}
+    <div class="d-section"><div class="d-section-title">Voltar à cadeia</div><div class="tag-list"><span class="tag chain" data-chain-detail="${escapeHtml(chain.id)}">${escapeHtml(chain.id)}</span></div></div>`;
+  content.querySelectorAll('[data-chain-detail]').forEach(item => item.onclick = () => selectChain(item.dataset.chainDetail));
+}
+
+function renderPathStep(step, index, clickable) {
+  const node = findNode(step.technique);
+  const color = node ? node.tactic.color : 'var(--accent)';
+  const mitigations = (step.mitigations || []).map(item => `<span class="tag green">${escapeHtml(item)}</span>`).join('');
+  const attrs = clickable ? ` data-step-detail="${index}" style="cursor:pointer"` : '';
+  return `<div class="path-step"${attrs}><div class="rail"><div class="node-dot" style="background:${color}">${escapeHtml(step.order)}</div><div class="line"></div></div><div class="p-body"><div class="p-tech">${escapeHtml(step.technique)}</div><div class="p-name">${escapeHtml(step.action)}</div><div class="p-action">${escapeHtml(step.description || '')}</div><div class="p-dur">${escapeHtml(step.duration || '')}</div>${step.mitigations && step.mitigations.length ? `<div class="p-mitig"><div class="p-mitig-label">Mitigações</div><div class="tag-list">${mitigations}</div></div>` : ''}</div></div>`;
 }
 
 function showPathPrompt(node, status) {
@@ -235,10 +299,8 @@ function showPathDetails(path) {
 }
 
 function clearSelection() {
-  graphState.activeChain = null; graphState.startNode = null; graphState.endNode = null; graphState.path = [];
-  document.querySelectorAll('.chain-item').forEach(item => item.classList.remove('active'));
-  document.getElementById('detail-empty').style.display = 'flex';
-  document.getElementById('detail-content').style.display = 'none';
+  clearFocusedState();
+  showEmptyDetail();
   draw();
 }
 
@@ -250,7 +312,11 @@ function resizeCanvas() {
   canvas.style.width = `${rect.width}px`;
   canvas.style.height = `${rect.height}px`;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  if (!graphState.animation) { graphState.panX = rect.width / 2; graphState.panY = rect.height / 2; }
+  if (!graphState.hasCanvasPosition) {
+    graphState.panX = rect.width / 2;
+    graphState.panY = rect.height / 2;
+    graphState.hasCanvasPosition = true;
+  }
   draw();
 }
 
@@ -268,6 +334,13 @@ function drawGrid(width, height) {
   ctx.restore();
 }
 
+function isNodeVisible(node) {
+  if (node.hidden) return false;
+  const focusedPath = Boolean(graphState.activeChain || graphState.path.length > 1);
+  if (focusedPath && !graphState.path.includes(node.id)) return false;
+  return true;
+}
+
 function draw() {
   if (!canvas.width) return;
   const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -276,7 +349,7 @@ function draw() {
   ctx.save();
   graphState.edges.forEach(edge => {
     const source = findNode(edge.source), target = findNode(edge.target);
-    if (!source || !target || (source.hidden && target.hidden)) return;
+    if (!source || !target || !isNodeVisible(source) || !isNodeVisible(target)) return;
     const a = toScreen(source), b = toScreen(target);
     const active = graphState.path.includes(edge.source) && graphState.path.includes(edge.target) && graphState.path.indexOf(edge.target) === graphState.path.indexOf(edge.source) + 1;
     if (focusedPath && !active) return;
@@ -285,7 +358,7 @@ function draw() {
     drawArrow(a.x, a.y, b.x, b.y, source.radius * graphState.scale, active);
   });
   graphState.nodes.forEach(node => {
-    if (node.hidden || (focusedPath && !graphState.path.includes(node.id))) return;
+    if (!isNodeVisible(node)) return;
     const point = toScreen(node);
     const active = graphState.path.includes(node.id) || node.id === graphState.startNode || node.id === graphState.endNode;
     const color = node.tactic.color;
@@ -297,7 +370,7 @@ function draw() {
     ctx.strokeStyle = active ? '#fff' : 'rgba(255,255,255,0.28)'; ctx.lineWidth = active ? 2 : 1; ctx.stroke();
     ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.max(9, 10 * Math.min(graphState.scale, 1.3))}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(node.id.replace('W',''), point.x, point.y);
-    if (graphState.scale > 0.8 || active) {
+    if (graphState.scale > 1.1 || active || graphState.hoverNodeId === node.id) {
       ctx.fillStyle = active ? '#fff' : 'rgba(232,232,240,0.78)';
       ctx.font = `${active ? 600 : 500} ${Math.max(10, 11 * Math.min(graphState.scale, 1.3))}px ${getComputedStyle(document.documentElement).getPropertyValue('--sans') || 'sans-serif'}`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -322,7 +395,7 @@ function drawArrow(x1, y1, x2, y2, gap, active) {
 function nodeAt(x, y) {
   for (let index = graphState.nodes.length - 1; index >= 0; index--) {
     const node = graphState.nodes[index];
-    if (node.hidden && !graphState.path.includes(node.id)) continue;
+    if (!isNodeVisible(node)) continue;
     const point = toScreen(node);
     if (Math.hypot(point.x - x, point.y - y) <= 22 * Math.max(1, graphState.scale)) return node;
   }
@@ -356,29 +429,56 @@ canvas.addEventListener('mousedown', event => {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left, y = event.clientY - rect.top;
   const node = nodeAt(x, y);
-  graphState.dragging = true; graphState.dragNode = node;
+  graphState.dragging = true;
+  graphState.dragNode = node;
+  graphState.pressedNode = node;
+  graphState.pointerMoved = false;
   graphState.pointer = { x: event.clientX, y: event.clientY };
   canvas.classList.add('dragging');
-  if (node) selectNode(node);
 });
 canvas.addEventListener('mousemove', event => {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left, y = event.clientY - rect.top;
   const hovered = nodeAt(x, y);
+  const previousHover = graphState.hoverNodeId;
+  graphState.hoverNodeId = hovered ? hovered.id : null;
   if (hovered) showTooltip(hovered, event.clientX, event.clientY); else hideTooltip();
+  if (previousHover !== graphState.hoverNodeId && !graphState.dragging) draw();
   if (!graphState.dragging) return;
   const dx = event.clientX - graphState.pointer.x, dy = event.clientY - graphState.pointer.y;
+  const movedDistance = Math.hypot(event.clientX - graphState.pointer.x, event.clientY - graphState.pointer.y);
   graphState.pointer = { x: event.clientX, y: event.clientY };
+  if (movedDistance > 4) graphState.pointerMoved = true;
   if (graphState.dragNode) {
     const world = toWorld(x, y); graphState.dragNode.x = world.x; graphState.dragNode.y = world.y;
   } else { graphState.panX += dx; graphState.panY += dy; }
   draw();
 });
-canvas.addEventListener('mouseup', () => { graphState.dragging = false; graphState.dragNode = null; canvas.classList.remove('dragging'); });
-canvas.addEventListener('mouseleave', () => { graphState.dragging = false; graphState.dragNode = null; canvas.classList.remove('dragging'); hideTooltip(); });
+canvas.addEventListener('mouseup', () => {
+  if (!graphState.pointerMoved && graphState.pressedNode) selectNode(graphState.pressedNode);
+  graphState.dragging = false;
+  graphState.dragNode = null;
+  graphState.pressedNode = null;
+  graphState.pointerMoved = false;
+  canvas.classList.remove('dragging');
+});
+canvas.addEventListener('mouseleave', () => {
+  graphState.dragging = false;
+  graphState.dragNode = null;
+  graphState.pressedNode = null;
+  graphState.pointerMoved = false;
+  canvas.classList.remove('dragging');
+  graphState.hoverNodeId = null;
+  hideTooltip();
+});
 canvas.addEventListener('wheel', event => { event.preventDefault(); zoomBy(event.deltaY < 0 ? 1.1 : .9); }, { passive: false });
 
-document.getElementById('graph-search').addEventListener('input', event => { graphState.search = event.target.value; applyFilters(); });
+document.getElementById('graph-search').addEventListener('input', event => {
+  graphState.search = event.target.value;
+  clearFocusedState();
+  showEmptyDetail();
+  applyFilters();
+});
 window.addEventListener('resize', resizeCanvas);
 
 buildGraphData();

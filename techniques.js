@@ -748,7 +748,7 @@ GIF89a; <?php system($_GET['cmd']); ?>`
         subs: ["DNS query encoding", "Subdomain compression", "Covert channel DNS"],
         desc: "Exfiltração de dados através de queries DNS codificadas, usando servidores DNS controlados para receber dados em pequenos payloads dentro de queries aparentemente inocentes.",
         severity: 3,
-        mitigations: ["DNS query inspection", "Bloquear queries DNS anômalaas", "Detectar padrões de exfiltração"],
+        mitigations: ["DNS query inspection", "Bloquear queries DNS anômalas", "Detectar padrões de exfiltração"],
         references: ["OWASP Data Exfiltration"]
       },
       {
@@ -1137,6 +1137,159 @@ const response = await llm.withContext(whitelist, sanitized);`
         references: ["CWE-222"]
       }
     ]
+  },
+  {
+    id: "TA-W20",
+    name: "Cloud & Serverless",
+    color: "#22d3ee",
+    techniques: [
+      {
+        id: "W097",
+        name: "Cloud metadata credential theft",
+        subs: ["IMDSv1 abuse", "IMDSv2 bypass", "Workload identity tokens", "Temporary credential reuse"],
+        desc: "Acesso indevido a endpoints de metadata ou identidade de workload para obter credenciais temporarias e acessar recursos cloud fora do escopo esperado.",
+        severity: 4,
+        mitigations: ["Exigir IMDSv2", "Bloquear metadata no proxy de aplicacao", "Usar workload identity com escopo minimo", "Rotacionar credenciais temporarias"],
+        detection: ["Alertas para chamadas a 169.254.169.254", "CloudTrail/Activity Logs para uso anomalo de STS", "Egress logs por workload"],
+        tools: ["Prowler", "ScoutSuite", "CloudTrail", "Defender for Cloud"],
+        references: ["CWE-918", "OWASP SSRF Prevention", "NIST SP 800-190"]
+      },
+      {
+        id: "W098",
+        name: "Serverless event injection",
+        subs: ["SQS/SNS message injection", "EventBridge rule abuse", "Function URL exposure", "Dead-letter queue poisoning"],
+        desc: "Manipulacao de eventos, filas ou regras de roteamento para acionar funcoes serverless com dados ou contexto nao confiavel, podendo causar acesso indevido e execucao em cadeia.",
+        severity: 3,
+        mitigations: ["Validar schema e origem de eventos", "Assinar mensagens", "Restringir invocacao por funcao", "Aplicar idempotencia e DLQ isolada"],
+        detection: ["Auditar PutEvents/SendMessage", "Correlacionar produtor, consumidor e payload", "Alertar alteracoes de event rules"],
+        tools: ["CloudTrail", "LocalStack", "Prowler", "Semgrep"],
+        references: ["CWE-20", "OWASP API Security", "AWS Lambda Security Best Practices"]
+      },
+      {
+        id: "W099",
+        name: "Kubernetes RBAC and service account abuse",
+        subs: ["Overprivileged RoleBinding", "ServiceAccount token theft", "Kubelet exposure", "Secrets API access"],
+        desc: "Abuso de identidades e permissoes Kubernetes excessivas para ler secrets, criar workloads, executar comandos ou mover-se entre namespaces.",
+        severity: 4,
+        mitigations: ["RBAC por menor privilegio", "Desabilitar automount de tokens quando possivel", "NetworkPolicies", "Pod Security Admission"],
+        detection: ["Auditar create/exec/port-forward", "Alertar RoleBindings privilegiados", "Monitorar leitura de secrets e service accounts"],
+        tools: ["kubectl-who-can", "Kube-bench", "Kubescape", "Falco"],
+        references: ["CWE-269", "CIS Kubernetes Benchmark", "MITRE ATT&CK T1613"]
+      },
+      {
+        id: "W100",
+        name: "Container image and registry poisoning",
+        subs: ["Malicious base image", "Registry credential theft", "Tag mutation", "Unsigned image deployment"],
+        desc: "Comprometimento de imagens ou registries para inserir codigo malicioso no ciclo de build e deployment, explorando tags mutaveis ou ausencia de verificacao de assinatura.",
+        severity: 4,
+        mitigations: ["Assinar e verificar imagens", "Fixar por digest", "Scan de vulnerabilidades e secrets", "Separar credenciais de pull/push"],
+        detection: ["Drift de digest em deployments", "Auditoria de push/delete no registry", "SBOM e provenance no CI"],
+        tools: ["Trivy", "Cosign", "Syft", "Grype"],
+        references: ["CWE-829", "SLSA", "NIST SSDF"]
+      }
+    ]
+  },
+  {
+    id: "TA-W21",
+    name: "Identity & Federation",
+    color: "#38bdf8",
+    techniques: [
+      {
+        id: "W101",
+        name: "SAML assertion and federation abuse",
+        subs: ["Signature wrapping", "Audience confusion", "Issuer substitution", "Replay of assertions"],
+        desc: "Manipulacao de assertions SAML ou relacoes de confianca entre IdP e SP para obter autenticacao em um servico com identidade, audience ou assinatura indevida.",
+        severity: 4,
+        mitigations: ["Validar assinatura, issuer, audience e recipient", "Rejeitar assertions antigas", "Rotacionar certificados", "Usar bibliotecas SAML mantidas"],
+        detection: ["Logs de login por issuer/audience inesperados", "Deteccao de assertion replay", "Correlacao de fingerprint e horario"],
+        tools: ["SAML Raider", "Burp Suite", "Microsoft Entra logs", "Okta System Log"],
+        references: ["CWE-347", "OWASP SAML Security", "NIST SP 800-63C"]
+      },
+      {
+        id: "W102",
+        name: "OIDC token validation failure",
+        subs: ["Issuer confusion", "JWKS key substitution", "Nonce reuse", "Audience mismatch"],
+        desc: "Falhas na validacao de tokens OIDC permitem aceitar tokens emitidos por outro tenant, client ou issuer, confundindo identidade e contexto de autorizacao.",
+        severity: 4,
+        mitigations: ["Allowlist de issuer e audience", "Validar nonce e PKCE", "Fixar JWKS confiavel", "Separar tenants e clients"],
+        detection: ["Tokens com iss/aud inesperados", "Falhas de nonce e JWKS", "Login cross-tenant"],
+        tools: ["jwt-cli", "Burp Suite", "OpenID Conformance Tests", "oauth2-proxy"],
+        references: ["RFC 8725", "OpenID Connect Core", "CWE-347"]
+      },
+      {
+        id: "W103",
+        name: "SCIM provisioning and deprovisioning abuse",
+        subs: ["Unauthorized user creation", "Role attribute tampering", "Deprovisioning race", "Webhook replay"],
+        desc: "Abuso de APIs SCIM ou sincronizacao de identidades para criar usuarios, alterar atributos de privilegio ou impedir a remocao de acesso apos desligamento.",
+        severity: 3,
+        mitigations: ["Autenticar e autorizar por tenant", "Validar atributos server-side", "Assinar webhooks", "Aplicar reconciliacao e expiracao"],
+        detection: ["Criacoes em massa fora da janela de sincronizacao", "Mudancas de role via SCIM", "Divergencia entre IdP e SP"],
+        tools: ["Postman", "Burp Suite", "Okta Workflows", "Entra Provisioning logs"],
+        references: ["RFC 7644", "CWE-284", "OWASP API Security"]
+      },
+      {
+        id: "W104",
+        name: "Passkey and MFA recovery abuse",
+        subs: ["Recovery flow takeover", "Device enrollment abuse", "Push fatigue", "Backup factor reuse"],
+        desc: "Comprometimento de fluxos de recuperacao, enrollment ou fatores alternativos para contornar MFA sem quebrar diretamente a criptografia do autenticador principal.",
+        severity: 3,
+        mitigations: ["Reautenticacao resistente a phishing", "Step-up para enrollment e recovery", "Limitar fatores alternativos", "Notificar e revogar dispositivos"],
+        detection: ["Novo dispositivo seguido de recovery", "Pushes repetidos e rejeitados", "Alteracao de fatores fora do padrao"],
+        tools: ["WebAuthn tooling", "Identity provider logs", "Phish-resistant MFA testing"],
+        references: ["FIDO2 WebAuthn", "NIST SP 800-63B", "OWASP Authentication Cheat Sheet"]
+      }
+    ]
+  },
+  {
+    id: "TA-W22",
+    name: "Modern API & AI Threats",
+    color: "#f97316",
+    techniques: [
+      {
+        id: "W105",
+        name: "API schema and object-level authorization drift",
+        subs: ["BOLA across versions", "Shadow endpoint", "Mass assignment", "GraphQL resolver mismatch"],
+        desc: "Divergencia entre schema, versoes e regras de autorizacao permite acessar objetos ou campos que o contrato publico nao deveria liberar.",
+        severity: 4,
+        mitigations: ["Autorizacao por objeto no service layer", "Contract testing", "Inventario de endpoints", "Deny-by-default em campos"],
+        detection: ["Acesso cross-tenant", "Campos inesperados nas respostas", "Endpoints sem owner no inventario"],
+        tools: ["Schemathesis", "Dredd", "Burp Suite", "Postman"],
+        references: ["OWASP API1:2023", "OWASP API3:2023", "CWE-639"]
+      },
+      {
+        id: "W106",
+        name: "Webhook signature and replay abuse",
+        subs: ["Missing HMAC validation", "Timestamp bypass", "Replay window abuse", "SSRF through webhook target"],
+        desc: "Exploracao de webhooks sem autenticidade, freshness ou restricao de destino para forjar eventos, repetir operacoes ou induzir requisicoes server-side.",
+        severity: 3,
+        mitigations: ["HMAC com secret por integracao", "Timestamp e nonce anti-replay", "Allowlist de destinos", "Idempotency keys"],
+        detection: ["Assinaturas invalidas", "Eventos repetidos", "Destino novo ou IP inesperado", "Picos de retries"],
+        tools: ["Webhook.site", "Burp Suite", "ngrok", "Cloud provider audit logs"],
+        references: ["CWE-345", "OWASP SSRF Prevention", "OWASP API Security"]
+      },
+      {
+        id: "W107",
+        name: "LLM indirect prompt injection and tool abuse",
+        subs: ["Instruction injection in retrieved content", "Tool parameter tampering", "Cross-tenant context leakage", "Agent memory poisoning"],
+        desc: "Conteudo recuperado de documentos, paginas ou tickets altera as instrucoes de um agente LLM e induz ferramentas a executar acoes fora do objetivo original.",
+        severity: 4,
+        mitigations: ["Separar dados de instrucoes", "Allowlist de ferramentas e argumentos", "Sandbox e aprovacao humana", "Isolar memoria por tenant"],
+        detection: ["Tool calls fora do fluxo", "Mudanca anomala de prompt", "Acesso a contexto cross-tenant", "Payloads de instrucao em documentos"],
+        tools: ["Promptfoo", "Garak", "Microsoft PyRIT", "LLM observability"],
+        references: ["OWASP LLM01", "OWASP LLM06", "MITRE ATLAS"]
+      },
+      {
+        id: "W108",
+        name: "Model and embedding data extraction",
+        subs: ["Embedding inversion", "RAG corpus leakage", "Membership inference", "Training data extraction"],
+        desc: "Extracao de informacoes sensiveis a partir de respostas, embeddings, indices vetoriais ou comportamento do modelo, explorando falta de isolamento e filtros de acesso.",
+        severity: 3,
+        mitigations: ["ACL por documento e tenant no retrieval", "Redacao de dados sensiveis", "Rate limiting e output filtering", "Nao expor embeddings brutos"],
+        detection: ["Queries repetitivas de enumeracao", "Similaridade anomala no retrieval", "Tentativas de reconstruir documentos", "Tokens sensiveis em respostas"],
+        tools: ["Garak", "PyRIT", "LangSmith", "Vector DB audit logs"],
+        references: ["OWASP LLM02", "OWASP LLM08", "MITRE ATLAS"]
+      }
+    ]
   }
 ];
 
@@ -1146,6 +1299,10 @@ const attackChains = [
     id: "CHAIN-001",
     name: "Phishing → Credential Theft → Account Takeover",
     description: "Ataque de takeover de conta via phishing direcionado",
+    entry: {
+      label: "Mensagem de phishing entregue à vítima",
+      description: "O gatilho é humano, não técnico: um e-mail, SMS ou mensagem de chat forjado leva a vítima a um formulário falso. Nenhuma vulnerabilidade de aplicação é necessária neste ponto — a cadeia começa na caixa de entrada."
+    },
     techniques: ["W004", "W005", "W040"],
     difficulty: "Fácil",
     timeframe: "1-2 semanas",
@@ -1155,22 +1312,25 @@ const attackChains = [
         order: 1,
         technique: "W004",
         action: "Phishing direcionado",
-        description: "Criar página falsa de login que imita a aplicação legítima",
-        duration: "1-2 dias"
+        description: "Criar página falsa de login que imita a aplicação legítima, clonando domínio visual, logos e fluxo de autenticação para capturar credenciais.",
+        duration: "1-2 dias",
+        mitigations: ["MFA obrigatório em todos os logins", "DMARC/DKIM/SPF para autenticar e-mail", "Treinamento anti-phishing contínuo", "Canal alternativo para comunicações sensíveis"]
       },
       {
         order: 2,
         technique: "W005",
         action: "Captura de credenciais",
-        description: "Coletar username/password da vítima via formulário falso",
-        duration: "Instantâneo (após click do usuário)"
+        description: "Coletar username/password da vítima via formulário falso e validar em tempo real contra a aplicação legítima para confirmar credenciais válidas.",
+        duration: "Instantâneo (após click do usuário)",
+        mitigations: ["Detecção de credential stuffing e brute force", "Lockout progressivo de tentativas", "Monitorar login por IP e geolocalização anômalos"]
       },
       {
         order: 3,
         technique: "W040",
         action: "Account takeover",
-        description: "Login com credenciais roubadas e assumir conta",
-        duration: "Instantâneo"
+        description: "Fazer login com as credenciais roubadas e assumir a conta, acessando dados, alterando e-mail de recuperação e estabelecendo persistência.",
+        duration: "Instantâneo",
+        mitigations: ["Sessões com expiração curta", "Invalidar sessões antigas em novo login", "Alerta de login em dispositivo/local novo"]
       }
     ]
   },
@@ -1178,6 +1338,10 @@ const attackChains = [
     id: "CHAIN-002",
     name: "Recon → SQLi → Data Exfiltration → RCE",
     description: "Exploração completa via SQL Injection, do reconhecimento até RCE",
+    entry: {
+      label: "Parâmetro de entrada não parametrizado",
+      description: "O ponto de partida é um campo (busca, login, filtro) cujo valor é concatenado diretamente em uma query SQL. A falha nasce no código, não no atacante: qualquer entrada que chegue a esse parâmetro sem sanitização/parametrização é o vetor."
+    },
     techniques: ["W001", "W002", "W007", "W062", "W022"],
     difficulty: "Intermediário",
     timeframe: "2-4 semanas",
@@ -1187,36 +1351,41 @@ const attackChains = [
         order: 1,
         technique: "W001",
         action: "Fingerprinting de tecnologia",
-        description: "Identificar stack (PHP, Node.js, versões) via headers e erros",
-        duration: "1-3 dias"
+        description: "Identificar stack (PHP, Node.js, versões) e o SGBD via headers, erros verbosos e padrões de resposta.",
+        duration: "1-3 dias",
+        mitigations: ["Remover headers X-Powered-By/Server", "Páginas de erro genéricas", "Não expor versão do SGBD em erros"]
       },
       {
         order: 2,
         technique: "W002",
         action: "Mapeamento de endpoints",
-        description: "Descobrir endpoints vulneráveis e formulários de login/search",
-        duration: "2-5 dias"
+        description: "Descobrir endpoints vulneráveis e formulários de login/search que aceitam parâmetros controláveis.",
+        duration: "2-5 dias",
+        mitigations: ["Rate limiting em 404s", "Não expor rotas em JS público", "Documentar e proteger endpoints sensíveis"]
       },
       {
         order: 3,
         technique: "W007",
         action: "SQL Injection",
-        description: "Injetar SQL em campo de search ou login para extrair dados",
-        duration: "1-3 dias"
+        description: "Injetar SQL em campo de search ou login para extrair dados, usando payloads de erro ou união de tabelas.",
+        duration: "1-3 dias",
+        mitigations: ["Usar prepared statements/ORM em todas as queries", "Validar e tipar parâmetros de entrada", "Princípio do menor privilégio no usuário do banco"]
       },
       {
         order: 4,
         technique: "W062",
         action: "Extração blind de dados",
-        description: "Usar time-based SQLi para exfiltrar dados sensíveis (admin creds)",
-        duration: "1-2 dias"
+        description: "Usar time-based SQLi para exfiltrar dados sensíveis (admin creds) quando não há retorno visível.",
+        duration: "1-2 dias",
+        mitigations: ["WAF com regras de SQLi", "Monitorar queries anômalas e latência", "Restringir acesso a tabelas sensíveis"]
       },
       {
         order: 5,
         technique: "W022",
         action: "Remote Code Execution",
-        description: "Usar SQLi + into outfile ou stored procedures para RCE",
-        duration: "1 dia"
+        description: "Usar SQLi + into outfile ou stored procedures para executar código no servidor.",
+        duration: "1 dia",
+        mitigations: ["Desabilitar INTO OUTFILE/LOAD DATA", "Remover stored procedures perigosas", "Isolar o usuário do banco do filesystem"]
       }
     ]
   },
@@ -1224,6 +1393,10 @@ const attackChains = [
     id: "CHAIN-003",
     name: "OSINT → Subdomain Discovery → Admin Panel Access",
     description: "Descoberta de admin panel via OSINT e enumeração",
+    entry: {
+      label: "Superfície pública exposta (DNS, CT, GitHub)",
+      description: "O ponto de partida é a própria exposição da organização: subdomínios, certificados e repositórios públicos. Não há invasão inicial — o atacante apenas mapeia o que já está visível e encontra um painel administrativo esquecido."
+    },
     techniques: ["W003", "W023", "W024", "W058"],
     difficulty: "Fácil",
     timeframe: "1-3 semanas",
@@ -1233,29 +1406,33 @@ const attackChains = [
         order: 1,
         technique: "W003",
         action: "OSINT - Google dorks e GitHub",
-        description: "Procurar por credenciais, URLs de admin, ou vazamento de dados em repositórios públicos",
-        duration: "2-5 dias"
+        description: "Procurar por credenciais, URLs de admin ou vazamento de dados em repositórios públicos e buscas direcionadas.",
+        duration: "2-5 dias",
+        mitigations: ["Monitorar exposição pública do domínio", "Escanear repositórios com git-secrets", "Remover segredos de histórico de commits"]
       },
       {
         order: 2,
         technique: "W023",
         action: "DNS Enumeration",
-        description: "Bruteforce de subdomínios (admin.site.com, staging.site.com, etc)",
-        duration: "1-3 dias"
+        description: "Bruteforce de subdomínios (admin.site.com, staging.site.com, etc) para mapear a superfície.",
+        duration: "1-3 dias",
+        mitigations: ["Desabilitar AXFR públicas", "Rate limiting em queries DNS", "Revisar registros DNS desnecessários"]
       },
       {
         order: 3,
         technique: "W024",
         action: "Certificate Transparency Analysis",
-        description: "Verificar CT logs para descobrir subdomínios adicionais",
-        duration: "1 dia"
+        description: "Verificar CT logs para descobrir subdomínios adicionais que não aparecem no DNS ativo.",
+        duration: "1 dia",
+        mitigations: ["Monitorar CT logs para o próprio domínio", "Usar certificados específicos por subdomínio", "Alertas de novos certificados emitidos"]
       },
       {
         order: 4,
         technique: "W058",
         action: "Admin Panel Discovery",
-        description: "Acessar /admin, /administrator, etc descobertos e testar default credentials",
-        duration: "1-2 dias"
+        description: "Acessar /admin, /administrator e outros paths descobertos e testar credenciais padrão ou vazadas.",
+        duration: "1-2 dias",
+        mitigations: ["Renomear/ocultar paths de admin", "MFA no painel administrativo", "IP allowlist para acesso administrativo"]
       }
     ]
   },
@@ -1263,6 +1440,10 @@ const attackChains = [
     id: "CHAIN-004",
     name: "XSS Stored → Session Hijacking → Data Theft",
     description: "Roubo de sessão via XSS armazenado",
+    entry: {
+      label: "Input não sanitizado persistido no banco",
+      description: "O início do XSS é um campo de texto (perfil, comentário, bio) cujo conteúdo é salvo sem sanitização e depois renderizado como HTML. O vetor é a ausência de encoding na saída — qualquer usuário que grave um payload vira a arma."
+    },
     techniques: ["W008", "W011", "W040"],
     difficulty: "Intermediário",
     timeframe: "1-2 semanas",
@@ -1272,22 +1453,25 @@ const attackChains = [
         order: 1,
         technique: "W008",
         action: "Stored XSS Injection",
-        description: "Injetar script malicioso em campo de perfil, comentário ou descrição que seja persistido",
-        duration: "1-3 dias"
+        description: "Injetar script malicioso em campo de perfil, comentário ou descrição que seja persistido e renderizado para outros usuários.",
+        duration: "1-3 dias",
+        mitigations: ["Context-aware output encoding (HTML/JS/URL)", "Content-Security-Policy restritiva", "Sanitização com allowlist de tags"]
       },
       {
         order: 2,
         technique: "W011",
         action: "Session Hijacking via Cookie Theft",
-        description: "Script XSS rouba cookies de sessão de todos usuários que acessam a página",
-        duration: "Contínuo (enquanto script estiver armazenado)"
+        description: "O script XSS rouba cookies de sessão de todos os usuários que acessam a página comprometida.",
+        duration: "Contínuo (enquanto script estiver armazenado)",
+        mitigations: ["Cookies HttpOnly e Secure", "SameSite=Strict em cookies de sessão", "CSP para bloquear scripts de origem externa"]
       },
       {
         order: 3,
         technique: "W040",
         action: "Account Takeover",
-        description: "Usar cookies roubados para hacer login como outras contas",
-        duration: "Instantâneo por cookie"
+        description: "Usar cookies roubados para fazer login como outras contas e acessar dados sensíveis.",
+        duration: "Instantâneo por cookie",
+        mitigations: ["Sessões com expiração curta", "Invalidar sessões em login anômalo", "Monitorar uso de sessão por IP"]
       }
     ]
   },
@@ -1295,6 +1479,10 @@ const attackChains = [
     id: "CHAIN-005",
     name: "CORS Misconfiguration → Data Exfiltration",
     description: "Exploração de CORS para roubar dados de domínios terceiros",
+    entry: {
+      label: "Endpoint de API com credenciais e CORS permissivo",
+      description: "O ponto de partida é uma API que aceita requisições com credenciais (cookies) e reflete a origem do chamador sem validá-la. A falha é de configuração: o servidor confia em qualquer Origin."
+    },
     techniques: ["W066", "W017"],
     difficulty: "Fácil",
     timeframe: "1-2 semanas",
@@ -1304,15 +1492,17 @@ const attackChains = [
         order: 1,
         technique: "W066",
         action: "CORS Misconfiguration Detection",
-        description: "Identificar wildcard CORS (*) ou validação de origin fraca",
-        duration: "1-3 dias"
+        description: "Identificar wildcard CORS (*) ou validação de origin fraca que reflete a origem do atacante.",
+        duration: "1-3 dias",
+        mitigations: ["Allowlist explícita de origens confiáveis", "Não refletir Origin dinamicamente", "Evitar Access-Control-Allow-Credentials com wildcard"]
       },
       {
         order: 2,
         technique: "W017",
         action: "API Data Scraping",
-        description: "Fazer requisições cross-origin para API sem CORS restrito",
-        duration: "1 dia"
+        description: "Fazer requisições cross-origin autenticadas para a API e exfiltrar dados de usuários.",
+        duration: "1 dia",
+        mitigations: ["Validar Origin no backend, não só no proxy", "Rate limiting por sessão", "Monitorar requisições cross-origin anômalas"]
       }
     ]
   },
@@ -1320,6 +1510,10 @@ const attackChains = [
     id: "CHAIN-006",
     name: "File Upload → Webshell → C2 Communication",
     description: "Obtenção de acesso persistente via webshell e C2",
+    entry: {
+      label: "Endpoint de upload sem validação de tipo",
+      description: "O início é um formulário que aceita arquivos e os armazena em diretório web acessível, sem validar extensão, MIME ou conteúdo. Qualquer arquivo executável enviado vira vetor de execução."
+    },
     techniques: ["W038", "W050", "W063"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
@@ -1329,22 +1523,25 @@ const attackChains = [
         order: 1,
         technique: "W038",
         action: "Insecure File Upload",
-        description: "Contornar validação de upload para fazer upload de webshell",
-        duration: "2-5 dias"
+        description: "Contornar validação de upload (extensão dupla, MIME, null byte) para fazer upload de webshell.",
+        duration: "2-5 dias",
+        mitigations: ["Validar extensão e MIME por allowlist", "Renomear arquivos com hash aleatório", "Armazenar fora do diretório web"]
       },
       {
         order: 2,
         technique: "W050",
         action: "Webshell Deployment",
-        description: "Executar PHP/Aspx webshell para ganhar acesso ao servidor",
-        duration: "1 dia"
+        description: "Executar PHP/ASPX webshell para ganhar acesso ao servidor e comandos shell.",
+        duration: "1 dia",
+        mitigations: ["Desabilitar execução de scripts em diretórios de upload", "WAF com regras de webshell", "Monitorar criação de arquivos .php/.aspx"]
       },
       {
         order: 3,
         technique: "W063",
         action: "C2 Communication",
-        description: "Estabelecer comando e controle remoto via webshell",
-        duration: "Contínuo"
+        description: "Estabelecer comando e controle remoto via webshell para manter acesso persistente.",
+        duration: "Contínuo",
+        mitigations: ["Egress filtering de rede", "Detecção de tráfego C2 (JA3, beacons)", "Isolar o servidor web de recursos internos"]
       }
     ]
   },
@@ -1352,6 +1549,10 @@ const attackChains = [
     id: "CHAIN-007",
     name: "IDOR → Lateral Movement → Multi-Tenant Data Breach",
     description: "Escalação de acesso via IDOR em ambiente multi-tenant",
+    entry: {
+      label: "Identificador previsível em URL/API",
+      description: "O ponto de partida é um recurso endereçado por ID sequencial ou previsível (/api/user/123) sem verificação de que o usuário autenticado é o dono. A falha é de autorização por objeto, não de autenticação."
+    },
     techniques: ["W014", "W055", "W059"],
     difficulty: "Intermediário",
     timeframe: "2-4 semanas",
@@ -1361,22 +1562,25 @@ const attackChains = [
         order: 1,
         technique: "W014",
         action: "IDOR Exploitation",
-        description: "Manipular user ID em URL (/api/user/123) para acessar dados de outro usuário",
-        duration: "1-3 dias"
+        description: "Manipular user ID em URL (/api/user/123) para acessar dados de outro usuário.",
+        duration: "1-3 dias",
+        mitigations: ["Verificar posse do recurso no backend", "Usar IDs não sequenciais (UUID)", "Auditar logs de acesso por objeto"]
       },
       {
         order: 2,
         technique: "W055",
         action: "API to API Abuse",
-        description: "Usar tokens de serviço roubados para fazer requisições entre microserviços",
-        duration: "2-5 dias"
+        description: "Usar tokens de serviço roubados para fazer requisições entre microserviços internos.",
+        duration: "2-5 dias",
+        mitigations: ["mTLS entre serviços", "Tokens de curta duração por serviço", "Não expor APIs internas na borda"]
       },
       {
         order: 3,
         technique: "W059",
         action: "Multi-Tenant Data Access",
-        description: "Manipular tenant ID para acessar dados de outros clientes/tenants",
-        duration: "1-2 dias"
+        description: "Manipular tenant ID para acessar dados de outros clientes/tenants.",
+        duration: "1-2 dias",
+        mitigations: ["Isolamento por tenant em todas as queries", "Incluir tenant_id em índices e filtros", "Testes de isolamento cross-tenant"]
       }
     ]
   },
@@ -1384,6 +1588,10 @@ const attackChains = [
     id: "CHAIN-008",
     name: "SSRF → Internal Network Scanning → RCE",
     description: "Exploração de SSRF para acesso a recursos internos",
+    entry: {
+      label: "Parâmetro que aceita URL controlada pelo usuário",
+      description: "O início é um campo (importar imagem, preview de URL, webhooks) que faz o servidor buscar um endereço fornecido pelo cliente. Sem validação de destino, o servidor vira um proxy para a rede interna."
+    },
     techniques: ["W002", "W018", "W022"],
     difficulty: "Intermediário",
     timeframe: "2-3 semanas",
@@ -1393,22 +1601,25 @@ const attackChains = [
         order: 1,
         technique: "W002",
         action: "Endpoint Discovery",
-        description: "Encontrar endpoints que aceitam URLs (URL shortener, image proxy, PDF generator)",
-        duration: "1-3 dias"
+        description: "Encontrar endpoints que aceitam URLs (URL shortener, image proxy, PDF generator).",
+        duration: "1-3 dias",
+        mitigations: ["Documentar endpoints que aceitam URLs", "Revisar funcionalidades de import/preview", "Rate limiting em endpoints de fetch"]
       },
       {
         order: 2,
         technique: "W018",
         action: "SSRF Attack",
-        description: "Forçar servidor a fazer requisições internas (localhost:8080, 10.0.0.x, metadata 169.254)",
-        duration: "2-5 dias"
+        description: "Forçar o servidor a fazer requisições internas (localhost:8080, 10.0.0.x, metadata 169.254).",
+        duration: "2-5 dias",
+        mitigations: ["Allowlist de destinos permitidos", "Bloquear ranges privados e link-local", "Resolver DNS antes de validar (evitar rebinding)"]
       },
       {
         order: 3,
         technique: "W022",
         action: "RCE via SSRF",
-        description: "Acessar admin panels internos ou services vulneráveis (Redis, Memcached) via SSRF",
-        duration: "1-2 dias"
+        description: "Acessar admin panels internos ou serviços vulneráveis (Redis, Memcached) via SSRF.",
+        duration: "1-2 dias",
+        mitigations: ["Isolar serviços internos em VPCs sem acesso público", "Autenticar serviços internos", "Monitorar requisições a metadata"]
       }
     ]
   },
@@ -1416,6 +1627,10 @@ const attackChains = [
     id: "CHAIN-009",
     name: "JWT Algorithm Confusion → Privilege Escalation",
     description: "Forjamento de JWT para escalação de privilégio",
+    entry: {
+      label: "Validador de JWT que aceita o algoritmo do token",
+      description: "O ponto de partida é um backend que confere a assinatura usando o algoritmo declarado no header do token (alg). Se o validador não fixa o algoritmo esperado, o atacante troca RS256 por HS256 e assina com a chave pública."
+    },
     techniques: ["W012", "W015"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
@@ -1425,15 +1640,17 @@ const attackChains = [
         order: 1,
         technique: "W012",
         action: "JWT Attack - Algorithm Confusion",
-        description: "Capturar JWT legítimo e tentar mudar alg de RS256 para HS256",
-        duration: "1-3 dias"
+        description: "Capturar JWT legítimo e tentar mudar alg de RS256 para HS256 para forjar a assinatura.",
+        duration: "1-3 dias",
+        mitigations: ["Fixar o algoritmo esperado no validador", "Rejeitar tokens com alg diferente do configurado", "Usar bibliotecas que não confiam no header"]
       },
       {
         order: 2,
         technique: "W015",
         action: "Privilege Escalation",
-        description: "Modificar payload (role: admin) e assinar com chave pública como HMAC",
-        duration: "1 dia"
+        description: "Modificar payload (role: admin) e assinar com a chave pública como HMAC.",
+        duration: "1 dia",
+        mitigations: ["Não expor a chave pública em locais previsíveis", "Auditar claims de papel/permissão", "Validar expiração e issuer em todos os tokens"]
       }
     ]
   },
@@ -1441,6 +1658,10 @@ const attackChains = [
     id: "CHAIN-010",
     name: "WAF Bypass → SQLi → RCE (Advanced)",
     description: "Bypass de WAF para exploração de SQLi com evasão",
+    entry: {
+      label: "WAF com regras baseadas em regex e normalização inconsistente",
+      description: "O ponto de partida é a própria defesa: um WAF que inspeciona o payload bruto enquanto a aplicação decodifica antes de usar. Essa diferença de normalização (double encoding, case, whitespace) é a brecha que o atacante explora."
+    },
     techniques: ["W043", "W044", "W045", "W007", "W022"],
     difficulty: "Avançado",
     timeframe: "3-6 semanas",
@@ -1450,36 +1671,41 @@ const attackChains = [
         order: 1,
         technique: "W043",
         action: "WAF Encoding Bypass",
-        description: "Codificar payload SQL com double encoding, UTF-8, etc",
-        duration: "2-5 dias"
+        description: "Codificar payload SQL com double encoding, UTF-8 e variações para evadir as regras do WAF.",
+        duration: "2-5 dias",
+        mitigations: ["Normalizar e decodificar antes de inspecionar", "WAF com múltiplas camadas de decodificação", "Testes de evasão regulares (red team)"]
       },
       {
         order: 2,
         technique: "W044",
         action: "Case Variation Bypass",
-        description: "Usar UNION/**/SELECT ou union/*...*/select para bypass",
-        duration: "1-2 dias"
+        description: "Usar UNION/**/SELECT ou union/*...*/select para contornar regras case-sensitive.",
+        duration: "1-2 dias",
+        mitigations: ["Regras case-insensitive no WAF", "Normalizar case antes do matching", "Bloquear comentários SQL inline"]
       },
       {
         order: 3,
         technique: "W045",
         action: "Whitespace/Null Byte Bypass",
-        description: "Inserir %0a, tabs, null bytes em SQL para evitar regex WAF",
-        duration: "1-2 dias"
+        description: "Inserir %0a, tabs, null bytes em SQL para evitar regex do WAF.",
+        duration: "1-2 dias",
+        mitigations: ["Tratar whitespace alternativo como separador", "Rejeitar null bytes em parâmetros", "Validar charset de entrada"]
       },
       {
         order: 4,
         technique: "W007",
         action: "SQL Injection Exploitation",
-        description: "Executar SQLi que passou pelo WAF para exfiltrar dados",
-        duration: "1-3 dias"
+        description: "Executar SQLi que passou pelo WAF para exfiltrar dados.",
+        duration: "1-3 dias",
+        mitigations: ["Prepared statements independentes do WAF", "Menor privilégio no usuário do banco", "Monitorar queries anômalas"]
       },
       {
         order: 5,
         technique: "W022",
         action: "RCE via SQLi",
-        description: "Usar into outfile ou prepared statements para RCE",
-        duration: "1 dia"
+        description: "Usar into outfile ou prepared statements para RCE.",
+        duration: "1 dia",
+        mitigations: ["Desabilitar INTO OUTFILE", "Isolar o banco do filesystem", "Remover permissões de escrita no diretório web"]
       }
     ]
   }
@@ -1488,75 +1714,95 @@ const attackChains = [
     id: "CHAIN-011",
     name: "Recon → API Abuse → Data Exfiltration",
     description: "Extração massiva de dados via APIs públicas/GraphQL",
+    entry: {
+      label: "API pública sem limitação de volume ou escopo",
+      description: "O ponto de partida é uma API (REST ou GraphQL) exposta sem rate limiting, sem paginação forçada e com autorização fraca por objeto. O atacante não precisa de vulnerabilidade crítica — apenas de volume e de dados que a API devolve."
+    },
     techniques: ["W001", "W002", "W017", "W062", "W061"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
     impact: "Data Exfiltration - Exfiltração em larga escala",
     steps: [
-      { order: 1, technique: "W001", action: "Fingerprinting", description: "Identificar stack e endpoints expostos", duration: "1-3 dias" },
-      { order: 2, technique: "W002", action: "Mapeamento de endpoints", description: "Descobrir endpoints e parâmetros vulneráveis", duration: "2-5 dias" },
-      { order: 3, technique: "W017", action: "API scraping / GraphQL introspection", description: "Coletar campos e endpoints sensíveis", duration: "1-4 dias" },
-      { order: 4, technique: "W062", action: "Blind extraction", description: "Extrair dados usando técnicas blind/time-based se necessário", duration: "1-3 dias" },
-      { order: 5, technique: "W061", action: "Exfiltration via HTTP metadata", description: "Encaminhar dados por headers ou canais covert", duration: "Contínuo" }
+      { order: 1, technique: "W001", action: "Fingerprinting", description: "Identificar stack e endpoints expostos", duration: "1-3 dias", mitigations: ["Remover headers reveladores", "Erros genéricos", "Não expor versões"] },
+      { order: 2, technique: "W002", action: "Mapeamento de endpoints", description: "Descobrir endpoints e parâmetros vulneráveis", duration: "2-5 dias", mitigations: ["Rate limiting em 404s", "Não expor rotas em JS", "Proteger endpoints sensíveis"] },
+      { order: 3, technique: "W017", action: "API scraping / GraphQL introspection", description: "Coletar campos e endpoints sensíveis", duration: "1-4 dias", mitigations: ["Desabilitar introspection em produção", "Limitar campos por query", "Autorização por campo"] },
+      { order: 4, technique: "W062", action: "Blind extraction", description: "Extrair dados usando técnicas blind/time-based se necessário", duration: "1-3 dias", mitigations: ["WAF com regras de exfiltração", "Monitorar latência anômala", "Restringir dados sensíveis"] },
+      { order: 5, technique: "W061", action: "Exfiltration via HTTP metadata", description: "Encaminhar dados por headers ou canais covert", duration: "Contínuo", mitigations: ["Egress filtering", "Detecção de tráfego anômalo", "DLP em saídas de dados"] }
     ]
   },
   {
     id: "CHAIN-012",
     name: "SSRF → Cloud Metadata → Container Escape",
     description: "Uso de SSRF para recuperar credenciais internas e escalar para escapes de container/sandbox",
+    entry: {
+      label: "Workload em cloud com endpoint de metadata acessível",
+      description: "O ponto de partida é um serviço que roda em cloud (EC2, GCP, Azure) e cujo endpoint de metadata (169.254.169.254) não está protegido por IMDSv2. Um SSRF qualquer vira acesso às credenciais temporárias do workload."
+    },
     techniques: ["W018", "W055", "W084"],
     difficulty: "Avançado",
     timeframe: "2-5 semanas",
     impact: "Escalada para infra interna / container escape",
     steps: [
-      { order: 1, technique: "W018", action: "SSRF discovery", description: "Encontrar endpoints que aceitam URLs e forçar requests internas (metadata)", duration: "1-4 dias" },
-      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar credenciais temporárias para chamar APIs internas e mover-se lateralmente", duration: "2-7 dias" },
-      { order: 3, technique: "W084", action: "Container/Sandbox escape", description: "Explorar misconfigurations ou vulnerabilidades para escapar do container", duration: "1-7 dias" }
+      { order: 1, technique: "W018", action: "SSRF discovery", description: "Encontrar endpoints que aceitam URLs e forçar requests internas (metadata)", duration: "1-4 dias", mitigations: ["Allowlist de destinos", "Bloquear 169.254.169.254", "Resolver DNS antes de validar"] },
+      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar credenciais temporárias para chamar APIs internas e mover-se lateralmente", duration: "2-7 dias", mitigations: ["IMDSv2 com token", "Escopos mínimos por workload", "mTLS entre serviços"] },
+      { order: 3, technique: "W084", action: "Container/Sandbox escape", description: "Explorar misconfigurations ou vulnerabilidades para escapar do container", duration: "1-7 dias", mitigations: ["Drop capabilities desnecessárias", "Não montar sockets do host", "Runtime com seccomp/AppArmor"] }
     ]
   },
   {
     id: "CHAIN-013",
     name: "Webshell → C2 → Persistence → Data Sabotage",
     description: "Pós-exploração com implantação de webshell, C2, persistência e sabotagem de dados",
+    entry: {
+      label: "Acesso inicial já obtido (upload ou RCE)",
+      description: "Esta cadeia assume que o atacante já tem execução no servidor (via upload inseguro, RCE ou credencial). O ponto de partida é a capacidade de gravar um arquivo executável e mantê-lo vivo após reinicializações."
+    },
     techniques: ["W050", "W063", "W054", "W039"],
     difficulty: "Intermediário",
     timeframe: "1-4 semanas",
     impact: "Acesso persistente e possível sabotagem de dados",
     steps: [
-      { order: 1, technique: "W050", action: "Webshell deployment", description: "Implantar webshell via upload ou RCE", duration: "1-3 dias" },
-      { order: 2, technique: "W063", action: "C2 establishment", description: "Estabelecer canal de comando e controle via HTTP/HTTPS", duration: "1-7 dias" },
-      { order: 3, technique: "W054", action: "Database backdoor", description: "Criar stored procedures/mecanismos para persistência no DB", duration: "1-5 dias" },
-      { order: 4, technique: "W039", action: "Data sabotage", description: "Modificar ou destruir dados críticos (ransom/sabotage)", duration: "1-3 dias" }
+      { order: 1, technique: "W050", action: "Webshell deployment", description: "Implantar webshell via upload ou RCE", duration: "1-3 dias", mitigations: ["WAF com regras de webshell", "Monitorar criação de arquivos .php/.aspx", "Desabilitar execução em diretórios de upload"] },
+      { order: 2, technique: "W063", action: "C2 establishment", description: "Estabelecer canal de comando e controle via HTTP/HTTPS", duration: "1-7 dias", mitigations: ["Egress filtering", "Detecção de beacons (JA3)", "Isolar servidor web da rede interna"] },
+      { order: 3, technique: "W054", action: "Database backdoor", description: "Criar stored procedures/mecanismos para persistência no DB", duration: "1-5 dias", mitigations: ["Auditar stored procedures", "Restringir CREATE PROCEDURE", "Monitorar objetos novos no banco"] },
+      { order: 4, technique: "W039", action: "Data sabotage", description: "Modificar ou destruir dados críticos (ransom/sabotage)", duration: "1-3 dias", mitigations: ["Backups offline/imutáveis", "Separação de permissões de escrita", "Detecção de alterações em massa"] }
     ]
   },
   {
     id: "CHAIN-014",
     name: "Initial Compromise → API-to-API Abuse → Lateral Movement",
     description: "Movimentação lateral em ambientes de microserviços através de abuso de tokens e privilégios",
+    entry: {
+      label: "Comprometimento de um serviço com tokens de serviço",
+      description: "O ponto de partida é um microserviço comprometido que detém tokens ou credenciais para chamar outros serviços. A falha é a confiança implícita entre serviços: se um cai, todos os que ele chama ficam expostos."
+    },
     techniques: ["W050", "W055", "W056", "W059"],
     difficulty: "Intermediário",
     timeframe: "2-4 semanas",
     impact: "Movimentação lateral e acesso a múltiplos serviços",
     steps: [
-      { order: 1, technique: "W050", action: "Initial compromise", description: "Obter execução ou credenciais iniciais (webshell/creds)", duration: "1-5 dias" },
-      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar tokens/credentials para chamar APIs internas e descobrir confiança implícita", duration: "2-6 dias" },
-      { order: 3, technique: "W056", action: "DB privilege escalation", description: "Escalonar privilégios dentro do banco de dados para acessar mais dados", duration: "1-4 dias" },
-      { order: 4, technique: "W059", action: "Multi-tenant access", description: "Explorar isolamento fraco para acessar dados de outros tenants", duration: "1-3 dias" }
+      { order: 1, technique: "W050", action: "Initial compromise", description: "Obter execução ou credenciais iniciais (webshell/creds)", duration: "1-5 dias", mitigations: ["Zero trust na borda", "MFA em todos os acessos", "Monitorar execução anômala"] },
+      { order: 2, technique: "W055", action: "API-to-API abuse", description: "Usar tokens/credentials para chamar APIs internas e descobrir confiança implícita", duration: "2-6 dias", mitigations: ["mTLS entre serviços", "Tokens de curta duração", "Escopo mínimo por token"] },
+      { order: 3, technique: "W056", action: "DB privilege escalation", description: "Escalonar privilégios dentro do banco de dados para acessar mais dados", duration: "1-4 dias", mitigations: ["Menor privilégio por serviço", "Separar DBs por serviço", "Auditar GRANTs"] },
+      { order: 4, technique: "W059", action: "Multi-tenant access", description: "Explorar isolamento fraco para acessar dados de outros tenants", duration: "1-3 dias", mitigations: ["Isolamento por tenant", "Incluir tenant_id em queries", "Testes cross-tenant"] }
     ]
   },
   {
     id: "CHAIN-015",
     name: "Blind Extraction → Covert Channel Exfiltration",
     description: "Extração furtiva usando canais covert (DNS, headers) após extração blind",
+    entry: {
+      label: "Vulnerabilidade sem retorno visível (blind)",
+      description: "O ponto de partida é uma injecção ou falha que não devolve dados na resposta (blind SQLi, blind XSS). O atacante precisa de um canal alternativo — DNS, headers HTTP — para levar os dados para fora sem deixar rastro óbvio."
+    },
     techniques: ["W062", "W060", "W061", "W017"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
     impact: "Exfiltração furtiva de dados",
     steps: [
-      { order: 1, technique: "W062", action: "Blind extraction", description: "Extrair dados via timing/boolean-based se não houver feedback direto", duration: "1-4 dias" },
-      { order: 2, technique: "W060", action: "DNS tunneling", description: "Encapsular e enviar dados via queries DNS a servidores controlados", duration: "1-3 dias" },
-      { order: 3, technique: "W061", action: "HTTP metadata exfiltration", description: "Usar headers ou user-agent para enviar fragmentos de dados", duration: "Contínuo" },
-      { order: 4, technique: "W017", action: "API aggregation", description: "Agregação final via API scraping/collection", duration: "1-2 dias" }
+      { order: 1, technique: "W062", action: "Blind extraction", description: "Extrair dados via timing/boolean-based se não houver feedback direto", duration: "1-4 dias", mitigations: ["WAF com regras de blind SQLi", "Monitorar latência anômala", "Prepared statements"] },
+      { order: 2, technique: "W060", action: "DNS tunneling", description: "Encapsular e enviar dados via queries DNS a servidores controlados", duration: "1-3 dias", mitigations: ["Restringir egress DNS", "Monitorar subdomínios longos/anômalos", "DNS logging e alertas"] },
+      { order: 3, technique: "W061", action: "HTTP metadata exfiltration", description: "Usar headers ou user-agent para enviar fragmentos de dados", duration: "Contínuo", mitigations: ["Egress filtering", "DLP em saídas", "Detecção de payloads em headers"] },
+      { order: 4, technique: "W017", action: "API aggregation", description: "Agregação final via API scraping/collection", duration: "1-2 dias", mitigations: ["Rate limiting por sessão", "Limitar campos por query", "Autorização por objeto"] }
     ]
   }
   ,
@@ -1564,114 +1810,506 @@ const attackChains = [
     id: "CHAIN-016",
     name: "CI/CD Secrets → Build Compromise → Supply-Chain Backdoor",
     description: "Vazamento de segredos em pipelines CI que levam ao comprometimento do processo de build e injeção de dependências maliciosas.",
+    entry: {
+      label: "Segredo exposto em pipeline ou artefato",
+      description: "O ponto de partida é um token, chave ou credencial que vazou em logs de CI, variáveis de ambiente, artefatos públicos ou repositório. Com esse segredo, o atacante entra na cadeia de build antes do código chegar à produção."
+    },
     techniques: ["W090", "W006", "W051", "W022"],
     difficulty: "Intermediário",
     timeframe: "2-6 semanas",
     impact: "Supply chain compromise / RCE",
     steps: [
-      { order: 1, technique: "W090", action: "CI/CD secrets discovery", description: "Encontrar tokens, variáveis ou logs expostos em pipelines e artefatos", duration: "1-7 dias" },
-      { order: 2, technique: "W006", action: "Abuse supply chain access", description: "Usar credenciais de CI para publicar artefatos maliciosos ou acessar registries", duration: "2-7 dias" },
-      { order: 3, technique: "W051", action: "Backdoor dependency", description: "Introduzir versão comprometida de dependência que será instalada no build", duration: "1-5 dias" },
-      { order: 4, technique: "W022", action: "Remote Code Execution", description: "Explorar a cadeia comprometida em ambiente de produção para execução remota", duration: "1-3 dias" }
+      { order: 1, technique: "W090", action: "CI/CD secrets discovery", description: "Encontrar tokens, variáveis ou logs expostos em pipelines e artefatos", duration: "1-7 dias", mitigations: ["Scanner de segredos em commits", "Secrets manager com escopo mínimo", "Não gravar secrets em logs"] },
+      { order: 2, technique: "W006", action: "Abuse supply chain access", description: "Usar credenciais de CI para publicar artefatos maliciosos ou acessar registries", duration: "2-7 dias", mitigations: ["Assinatura de artefatos", "Proteção de branches e tags", "Auditoria de publicações no registry"] },
+      { order: 3, technique: "W051", action: "Backdoor dependency", description: "Introduzir versão comprometida de dependência que será instalada no build", duration: "1-5 dias", mitigations: ["Lock files versionados", "SRI em pacotes", "Auditoria de dependências (SBOM)"] },
+      { order: 4, technique: "W022", action: "Remote Code Execution", description: "Explorar a cadeia comprometida em ambiente de produção para execução remota", duration: "1-3 dias", mitigations: ["Reproduzir builds de forma determinística", "Proveniência de artefatos", "Monitorar execução anômala em produção"] }
     ]
   },
   {
     id: "CHAIN-017",
     name: "Subdomain Takeover → Brand Impersonation → Phishing",
     description: "Aproveitar subdomínio não reclamado para hospedar conteúdo malicioso, phishing ou defacement em nome da vítima.",
+    entry: {
+      label: "Registro DNS órfão (dangling CNAME)",
+      description: "O ponto de partida é um registro DNS que aponta para um serviço (S3, Netlify, Heroku, GitHub Pages) que a organização deixou de usar. O domínio ainda é da vítima, mas o recurso de destino está vazio e pode ser reivindicado por qualquer um."
+    },
     techniques: ["W089", "W004", "W020"],
     difficulty: "Fácil",
     timeframe: "1-4 semanas",
     impact: "Phishing / Reputational damage",
     steps: [
-      { order: 1, technique: "W089", action: "Detect dangling DNS/CNAME", description: "Identificar registros DNS apontando para serviços não provisionados", duration: "1-3 dias" },
-      { order: 2, technique: "W089", action: "Claim service and host content", description: "Reivindicar serviço (ex: Netlify, S3) e publicar páginas/artefatos", duration: "1-3 dias" },
-      { order: 3, technique: "W004", action: "Phishing hosting", description: "Hospedar páginas de phishing ou forms que se passam pelo site legítimo", duration: "1-3 dias" },
-      { order: 4, technique: "W020", action: "Defacement / brand abuse", description: "Modificar conteúdo público para dano à reputação ou redirecionamento", duration: "Instantâneo" }
+      { order: 1, technique: "W089", action: "Detect dangling DNS/CNAME", description: "Identificar registros DNS apontando para serviços não provisionados", duration: "1-3 dias", mitigations: ["Monitorar dangling records", "Remover CNAMEs de serviços desativados", "Automatizar verificação de DNS"] },
+      { order: 2, technique: "W089", action: "Claim service and host content", description: "Reivindicar serviço (ex: Netlify, S3) e publicar páginas/artefatos", duration: "1-3 dias", mitigations: ["Reivindicar recursos antes de desativar", "Alertas de novos claims no domínio", "Gestão centralizada de subdomínios"] },
+      { order: 3, technique: "W004", action: "Phishing hosting", description: "Hospedar páginas de phishing ou forms que se passam pelo site legítimo", duration: "1-3 dias", mitigations: ["MFA obrigatório", "Verificação de domínio em formulários", "DMARC/DKIM/SPF"] },
+      { order: 4, technique: "W020", action: "Defacement / brand abuse", description: "Modificar conteúdo público para dano à reputação ou redirecionamento", duration: "Instantâneo", mitigations: ["Monitorar conteúdo publicado", "CDN com validação de origem", "Plano de resposta a incidentes"] }
     ]
   },
   {
     id: "CHAIN-018",
     name: "LFI → Log Poisoning → RCE via File Inclusion",
     description: "Combinar LFI com injeção em logs (user-agent, headers) para executar código ou obter shell via inclusão de arquivos de log.",
+    entry: {
+      label: "Parâmetro que inclui arquivo + logs que registram entrada do usuário",
+      description: "O ponto de partida é a combinação de duas falhas: um endpoint que inclui arquivos por caminho controlável (LFI) e logs que gravam campos do usuário (User-Agent, Referer) sem sanitização. O atacante grava um payload no log e depois o inclui."
+    },
     techniques: ["W091", "W049", "W022"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
     impact: "RCE / Shell access",
     steps: [
-      { order: 1, technique: "W049", action: "Log forging / payload injection", description: "Injetar payloads em campos logados (User-Agent, Referer, headers)", duration: "1-2 dias" },
-      { order: 2, technique: "W091", action: "Local File Inclusion", description: "Incluir arquivos de log via LFI para executar o payload injetado", duration: "1-3 dias" },
-      { order: 3, technique: "W022", action: "Escalada para RCE", description: "Extrair shell ou executar comandos através do arquivo incluído", duration: "1 dia" }
+      { order: 1, technique: "W049", action: "Log forging / payload injection", description: "Injetar payloads em campos logados (User-Agent, Referer, headers)", duration: "1-2 dias", mitigations: ["Sanitizar campos antes de logar", "Escapar caracteres de script em logs", "Não logar dados do usuário crus"] },
+      { order: 2, technique: "W091", action: "Local File Inclusion", description: "Incluir arquivos de log via LFI para executar o payload injetado", duration: "1-3 dias", mitigations: ["Allowlist de arquivos incluíveis", "Não usar entrada do usuário em include", "Validar caminho e extensão"] },
+      { order: 3, technique: "W022", action: "Escalada para RCE", description: "Extrair shell ou executar comandos através do arquivo incluído", duration: "1 dia", mitigations: ["Desabilitar execução de código em logs", "Princípio do menor privilégio", "WAF com regras de LFI"] }
     ]
   },
   {
     id: "CHAIN-019",
     name: "Image Processing RCE → Webshell Deployment",
     description: "Aproveitar falhas em processamento de imagens (ImageTragick) para executar comandos e plantar webshells.",
+    entry: {
+      label: "Endpoint que processa imagens com biblioteca vulnerável",
+      description: "O ponto de partida é um upload de imagem que passa por uma biblioteca de processamento (ImageMagick, GraphicsMagick) com delegações inseguras. Uma imagem malformada faz a biblioteca executar comandos do sistema."
+    },
     techniques: ["W093", "W022", "W050"],
     difficulty: "Intermediário",
     timeframe: "1-2 semanas",
     impact: "RCE e persistência via webshell",
     steps: [
-      { order: 1, technique: "W093", action: "Craft malicious image", description: "Criar imagem com payloads que acionam delegações inseguras (ImageMagick delegates)", duration: "1-3 dias" },
-      { order: 2, technique: "W022", action: "Trigger RCE via image processing", description: "Enviar imagem para endpoint que processa/convierte imagens e executar comando", duration: "1 dia" },
-      { order: 3, technique: "W050", action: "Deploy webshell", description: "Salvar webshell via comando executado e acessá-lo para persistência", duration: "1 dia" }
+      { order: 1, technique: "W093", action: "Craft malicious image", description: "Criar imagem com payloads que acionam delegações inseguras (ImageMagick delegates)", duration: "1-3 dias", mitigations: ["Manter bibliotecas de imagem atualizadas", "Restringir delegates do ImageMagick", "Validar formato antes de processar"] },
+      { order: 2, technique: "W022", action: "Trigger RCE via image processing", description: "Enviar imagem para endpoint que processa/converte imagens e executar comando", duration: "1 dia", mitigations: ["Processar imagens em sandbox/container", "Drop privileges no worker de imagem", "Timeout e limite de tamanho"] },
+      { order: 3, technique: "W050", action: "Deploy webshell", description: "Salvar webshell via comando executado e acessá-lo para persistência", duration: "1 dia", mitigations: ["WAF com regras de webshell", "Monitorar criação de arquivos", "Isolar diretório web do filesystem"] }
     ]
   },
   {
     id: "CHAIN-020",
     name: "HPP → Auth Bypass → Data Theft",
     description: "Usar HTTP Parameter Pollution para confundir validações e contornar controles de autorização, resultando em exfiltração de dados.",
+    entry: {
+      label: "Parâmetro duplicado com parsing ambíguo",
+      description: "O ponto de partida é um parâmetro que pode ser enviado mais de uma vez (role=1&role=admin) e que é interpretado de forma diferente pelo proxy/WAF e pela aplicação. Essa ambiguidade de parsing permite contornar validações de autorização."
+    },
     techniques: ["W094", "W015", "W017"],
     difficulty: "Intermediário",
     timeframe: "1-3 semanas",
     impact: "Data Exfiltration / Privilege Escalation",
     steps: [
-      { order: 1, technique: "W094", action: "Craft HPP requests", description: "Enviar parâmetros duplicados para explorar ambiguidade no parsing do servidor/proxy", duration: "1-3 dias" },
-      { order: 2, technique: "W015", action: "Authorization bypass", description: "Aproveitar parsing conflitante para alterar roles/IDs percebidos pela aplicação", duration: "1-4 dias" },
-      { order: 3, technique: "W017", action: "API data scraping", description: "Extração massiva de dados com privilégios escalados", duration: "1-3 dias" }
+      { order: 1, technique: "W094", action: "Craft HPP requests", description: "Enviar parâmetros duplicados para explorar ambiguidade no parsing do servidor/proxy", duration: "1-3 dias", mitigations: ["Normalizar parâmetros antes de validar", "Rejeitar parâmetros duplicados", "WAF com regras de HPP"] },
+      { order: 2, technique: "W015", action: "Authorization bypass", description: "Aproveitar parsing conflitante para alterar roles/IDs percebidos pela aplicação", duration: "1-4 dias", mitigations: ["Validar autorização no backend", "Não confiar em parâmetros de role", "Auditar decisões de acesso"] },
+      { order: 3, technique: "W017", action: "API data scraping", description: "Extração massiva de dados com privilégios escalados", duration: "1-3 dias", mitigations: ["Rate limiting por sessão", "Autorização por objeto", "Monitorar acesso anômalo"] }
     ]
   },
   {
     id: "CHAIN-021",
     name: "Public Bucket → Asset Injection → XSS / Supply-Chain",
     description: "Explorar buckets públicos mal configurados para hospedar assets atacantes que são consumidos pela aplicação ou por usuários, levando a XSS ou supply-chain impact.",
+    entry: {
+      label: "Bucket de storage público com escrita permitida",
+      description: "O ponto de partida é um bucket (S3, GCS, Azure Blob) configurado como público ou com permissão de escrita para qualquer um. Se a aplicação carrega assets desse bucket, o atacante substitui um arquivo legítimo por um malicioso."
+    },
     techniques: ["W095", "W006", "W008"],
     difficulty: "Fácil",
     timeframe: "1-2 semanas",
     impact: "XSS / Supply chain contamination",
     steps: [
-      { order: 1, technique: "W095", action: "Discover public buckets", description: "Identificar buckets publicamente acessíveis vinculados ao domínio ou assets usados pela aplicação", duration: "1-3 dias" },
-      { order: 2, technique: "W006", action: "Upload malicious asset or replace file", description: "Carregar ou substituir assets estáticos (JS, CSS, imagens) usados pela aplicação ou pipeline", duration: "1-3 dias" },
-      { order: 3, technique: "W008", action: "Trigger XSS / supply-chain impact", description: "Clientes carregam assets maliciosos resultando em XSS, credential theft ou comprometimento de builds", duration: "Instantâneo após consumo" }
+      { order: 1, technique: "W095", action: "Discover public buckets", description: "Identificar buckets publicamente acessíveis vinculados ao domínio ou assets usados pela aplicação", duration: "1-3 dias", mitigations: ["Bloquear acesso público por padrão", "Auditar políticas de bucket", "Monitorar novos buckets no domínio"] },
+      { order: 2, technique: "W006", action: "Upload malicious asset or replace file", description: "Carregar ou substituir assets estáticos (JS, CSS, imagens) usados pela aplicação ou pipeline", duration: "1-3 dias", mitigations: ["Assinatura de assets (SRI)", "Imutabilidade de objetos", "CDN com validação de origem"] },
+      { order: 3, technique: "W008", action: "Trigger XSS / supply-chain impact", description: "Clientes carregam assets maliciosos resultando em XSS, credential theft ou comprometimento de builds", duration: "Instantâneo após consumo", mitigations: ["CSP restritiva", "SRI em scripts externos", "Monitorar integridade de assets"] }
     ]
   },
   {
     id: "CHAIN-022",
     name: "Clickjacking → CSRF → Unauthorized State Change",
     description: "Combinar clickjacking com CSRF para induzir usuários autenticados a executar ações sensíveis sem confirmação.",
+    entry: {
+      label: "Página que pode ser embutida em iframe + ação sem token CSRF",
+      description: "O ponto de partida é uma página que não envia X-Frame-Options/CSP frame-ancestors e uma ação sensível que não exige token CSRF. O atacante embute a página e induz o usuário a clicar em um elemento invisível."
+    },
     techniques: ["W096", "W074", "W020"],
     difficulty: "Fácil",
     timeframe: "1-2 semanas",
     impact: "Unauthorized state changes / fraud",
     steps: [
-      { order: 1, technique: "W096", action: "Frame victim site", description: "Incorporar interface da vítima em iframe invisível no site atacante", duration: "1-2 dias" },
-      { order: 2, technique: "W074", action: "CSRF trigger", description: "Executar requisição forjada (form/image) dentro do iframe enquanto usuário autenticado interage", duration: "Instantâneo" },
-      { order: 3, technique: "W020", action: "Effect state change", description: "Confirmar que ação sensível foi executada (transferência, alteração de configuração)", duration: "Instantâneo" }
+      { order: 1, technique: "W096", action: "Frame victim site", description: "Incorporar interface da vítima em iframe invisível no site atacante", duration: "1-2 dias", mitigations: ["X-Frame-Options: DENY", "CSP frame-ancestors 'none'", "Testar embutimento em iframe"] },
+      { order: 2, technique: "W074", action: "CSRF trigger", description: "Executar requisição forjada (form/image) dentro do iframe enquanto usuário autenticado interage", duration: "Instantâneo", mitigations: ["Token CSRF em todas as ações", "SameSite=Strict em cookies", "Verificar Origin/Referer"] },
+      { order: 3, technique: "W020", action: "Effect state change", description: "Confirmar que ação sensível foi executada (transferência, alteração de configuração)", duration: "Instantâneo", mitigations: ["Confirmação em ações sensíveis", "MFA em operações críticas", "Monitorar alterações anômalas"] }
     ]
   },
   {
     id: "CHAIN-023",
     name: "Request Smuggling → Cache Poisoning → Large-scale Impact",
     description: "Combinar request smuggling com cache poisoning para servir conteúdo malicioso em escala a usuários legítimos.",
+    entry: {
+      label: "Proxy e backend com parsing diferente de HTTP",
+      description: "O ponto de partida é a diferença de interpretação entre o proxy de borda (CDN/WAF) e o servidor de origem para headers como Content-Length e Transfer-Encoding. Essa divergência permite 'empilhar' requisições e envenenar o cache."
+    },
     techniques: ["W077", "W076", "W043"],
     difficulty: "Avançado",
     timeframe: "3-8 semanas",
     impact: "Wide-scale defacement / credential theft / cache poisoning",
     steps: [
-      { order: 1, technique: "W077", action: "Identify smuggling vector", description: "Analisar front-end proxy e back-end para diferenças de parsing (CL.TE, TE.CL)", duration: "3-10 dias" },
-      { order: 2, technique: "W076", action: "Poison cache via crafted requests", description: "Explorar comportamento de cache para injetar respostas armazenadas que serão servidas a outros usuários", duration: "1-3 semanas" },
-      { order: 3, technique: "W043", action: "Evasion and payload delivery", description: "Aplicar encoding/encoding tricks para contornar WAFs e entregar payloads armazenados no cache", duration: "1-2 semanas" }
+      { order: 1, technique: "W077", action: "Identify smuggling vector", description: "Analisar front-end proxy e back-end para diferenças de parsing (CL.TE, TE.CL)", duration: "3-10 dias", mitigations: ["Padronizar parsing de HTTP", "Rejeitar TE e CL ambíguos", "Atualizar proxy e backend"] },
+      { order: 2, technique: "W076", action: "Poison cache via crafted requests", description: "Explorar comportamento de cache para injetar respostas armazenadas que serão servidas a outros usuários", duration: "1-3 semanas", mitigations: ["Cache por usuário autenticado", "Não cachear respostas sensíveis", "Invalidar cache em incidentes"] },
+      { order: 3, technique: "W043", action: "Evasion and payload delivery", description: "Aplicar encoding tricks para contornar WAFs e entregar payloads armazenados no cache", duration: "1-2 semanas", mitigations: ["WAF com regras de smuggling", "Monitorar respostas em cache", "Purge automático de cache suspeito"] }
+    ]
+  },
+  {
+    id: "CHAIN-024",
+    name: "OAuth Code Interception -> Open Redirect -> Account Takeover",
+    description: "Abuso de um fluxo OAuth com redirect_uri fraca para capturar codigo de autorizacao e assumir a conta.",
+    entry: {
+      label: "redirect_uri aceito sem validacao estrita",
+      description: "O ponto de partida e um fluxo OAuth que aceita redirect_uri com prefixo fraco (ex.: https://victima.com/evil) ou open redirect. O codigo de autorizacao volta para um dominio controlado pelo atacante."
+    },
+    techniques: ["W013", "W075", "W040"],
+    difficulty: "Intermediario",
+    timeframe: "1-3 semanas",
+    impact: "Account Takeover - Sequestro de conta via OAuth",
+    steps: [
+      { order: 1, technique: "W013", action: "OAuth flow reconnaissance", description: "Mapear client IDs, redirect_uris e validacao do parametro state", duration: "1-3 dias", mitigations: ["Allowlist exata de redirect_uri", "Validar state com nonce", "Auditar registros de client"] },
+      { order: 2, technique: "W075", action: "Open redirect abuse", description: "Usar redirecionamento aberto para enviar o retorno de autenticacao a um destino controlado", duration: "1-3 dias", mitigations: ["Bloquear open redirects", "Validar destino contra allowlist", "Revisar rotas de redirect"] },
+      { order: 3, technique: "W040", action: "Account takeover", description: "Reutilizar o codigo ou token exposto para acessar a conta da vitima", duration: "Instantaneo", mitigations: ["Códigos de uso unico e curta duracao", "PKCE em todos os fluxos", "Monitorar logins anômalos"] }
+    ]
+  },
+  {
+    id: "CHAIN-025",
+    name: "GraphQL Introspection -> API Scraping -> Covert Exfiltration",
+    description: "Descoberta de schema GraphQL seguida de coleta de dados e exfiltracao discreta.",
+    entry: {
+      label: "Endpoint GraphQL com introspection habilitada",
+      description: "O ponto de partida e um endpoint GraphQL que permite introspection em producao. O atacante descobre todo o schema (tipos, queries, mutations) e usa isso para coletar dados em escala."
+    },
+    techniques: ["W064", "W017", "W061"],
+    difficulty: "Intermediario",
+    timeframe: "1-3 semanas",
+    impact: "Data Exfiltration - Coleta massiva via GraphQL",
+    steps: [
+      { order: 1, technique: "W064", action: "GraphQL schema discovery", description: "Enumerar tipos, queries, mutations e campos expostos pelo schema", duration: "1-3 dias", mitigations: ["Desabilitar introspection em producao", "Limitar campos por query", "Autorizacao por campo"] },
+      { order: 2, technique: "W017", action: "API data scraping", description: "Coletar dados em lote explorando paginacao, campos excessivos ou autorizacao fraca", duration: "2-7 dias", mitigations: ["Rate limiting por query", "Limitar profundidade de query", "Autorizacao por objeto"] },
+      { order: 3, technique: "W061", action: "HTTP metadata exfiltration", description: "Transportar fragmentos de dados por headers ou outro canal HTTP discreto", duration: "Continuo", mitigations: ["Egress filtering", "DLP em saidas", "Detecao de payloads em headers"] }
+    ]
+  },
+  {
+    id: "CHAIN-026",
+    name: "WebSocket Auth Bypass -> Session Theft -> Account Takeover",
+    description: "Exploracao de WebSocket sem autenticacao ou validacao de origem adequada.",
+    entry: {
+      label: "Canal WebSocket sem autenticacao por mensagem",
+      description: "O ponto de partida e um WebSocket que autentica apenas no handshake e nao revalida a origem ou a identidade em cada mensagem. Qualquer cliente pode abrir o canal e ler/enviar dados de outros usuarios."
+    },
+    techniques: ["W078", "W011", "W040"],
+    difficulty: "Intermediario",
+    timeframe: "1-2 semanas",
+    impact: "Account Takeover - Sequestro de sessao em canal persistente",
+    steps: [
+      { order: 1, technique: "W078", action: "WebSocket access testing", description: "Testar handshake, Origin, autenticacao e autorizacao das mensagens", duration: "1-4 dias", mitigations: ["Validar Origin no handshake", "Autenticar por mensagem", "Limitar conexoes por IP"] },
+      { order: 2, technique: "W011", action: "Session token capture", description: "Explorar mensagens, conexao ou cliente para obter tokens de sessao", duration: "1-3 dias", mitigations: ["Isolar canais por usuario", "Nao expor tokens em mensagens", "Criptografia de payload"] },
+      { order: 3, technique: "W040", action: "Account takeover", description: "Usar a sessao obtida para agir em nome do usuario autenticado", duration: "Instantaneo", mitigations: ["Sessoes com expiracao curta", "Invalidar sessao em novo login", "Monitorar uso de canal"] }
+    ]
+  },
+  {
+    id: "CHAIN-027",
+    name: "Public Cloud Storage -> SSRF -> Remote Code Execution",
+    description: "Abuso de asset ou configuracao de cloud exposta para alcancar um servico interno vulneravel.",
+    entry: {
+      label: "Storage publico + endpoint que aceita URLs",
+      description: "O ponto de partida e a combinacao de um bucket/asset publico (que revela a topologia) e um endpoint que faz fetch de URLs controladas. O atacante usa o SSRF para alcancar servicos internos a partir da propria cloud."
+    },
+    techniques: ["W095", "W018", "W022"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "RCE - Comprometimento de servico interno em cloud",
+    steps: [
+      { order: 1, technique: "W095", action: "Cloud storage discovery", description: "Identificar bucket publico, artefatos expostos ou endpoint de storage associado a aplicacao", duration: "1-4 dias", mitigations: ["Bloquear acesso publico por padrao", "Auditar politicas de bucket", "Monitorar novos buckets"] },
+      { order: 2, technique: "W018", action: "SSRF pivot", description: "Usar um endpoint que aceita URLs para alcancar metadata ou servicos internos", duration: "2-7 dias", mitigations: ["Allowlist de destinos", "Bloquear ranges privados", "IMDSv2 com token"] },
+      { order: 3, technique: "W022", action: "Internal service exploitation", description: "Explorar servico interno vulneravel para obter execucao no ambiente", duration: "1-3 dias", mitigations: ["Isolar servicos internos", "Autenticar servicos internos", "Monitorar acessos a metadata"] }
+    ]
+  },
+  {
+    id: "CHAIN-028",
+    name: "Prototype Pollution -> Dynamic Template Abuse -> RCE",
+    description: "Cadeia client/server que transforma poluicao de prototype em execucao de codigo.",
+    entry: {
+      label: "Merge/assign de objeto com entrada do usuario",
+      description: "O ponto de partida e uma operacao de merge (Object.assign, lodash.merge, JSON parse) que aceita chaves controladas pelo usuario, incluindo __proto__ ou constructor. Isso polui o prototipo de objetos compartilhados."
+    },
+    techniques: ["W081", "W082", "W022"],
+    difficulty: "Avancado",
+    timeframe: "2-6 semanas",
+    impact: "RCE - Execucao de codigo por estado compartilhado comprometido",
+    steps: [
+      { order: 1, technique: "W081", action: "Prototype pollution", description: "Injetar propriedades em objetos compartilhados por merges ou desserializacao insegura", duration: "2-7 dias", mitigations: ["Usar Object.create(null)", "Validar chaves em merges", "Evitar lodash.merge com entrada do usuario"] },
+      { order: 2, technique: "W082", action: "Dynamic rendering abuse", description: "Usar o estado poluido para alterar bindings, templates ou configuracoes de runtime", duration: "1-2 semanas", mitigations: ["Sanitizar templates", "CSP restritiva", "Validar estado antes de renderizar"] },
+      { order: 3, technique: "W022", action: "Remote code execution", description: "Alcancar uma sink de execucao no servidor ou em uma ferramenta de build", duration: "1-3 dias", mitigations: ["Evitar eval/Function", "Sandbox de build", "Monitorar execucao anômala"] }
+    ]
+  },
+  {
+    id: "CHAIN-029",
+    name: "Password Reset Enumeration -> Token Abuse -> Account Takeover",
+    description: "Exploracao de fluxo de recuperacao de senha com enumeration e tokens fracos.",
+    entry: {
+      label: "Fluxo de reset de senha com tokens previsiveis",
+      description: "O ponto de partida e um fluxo de recuperacao que revela se a conta existe (enumeration) e usa tokens curtos, reutilizaveis ou previsiveis. O atacante pode forcar um reset e interceptar o token."
+    },
+    techniques: ["W033", "W034", "W040"],
+    difficulty: "Intermediario",
+    timeframe: "1-3 semanas",
+    impact: "Account Takeover - Comprometimento via recuperacao de senha",
+    steps: [
+      { order: 1, technique: "W033", action: "Password reset analysis", description: "Avaliar enumeration, expiracao, reutilizacao e previsibilidade dos tokens", duration: "1-4 dias", mitigations: ["Resposta identica para conta existente/nao", "Tokens de alta entropia", "Expiracao curta e uso unico"] },
+      { order: 2, technique: "W034", action: "Timing-based enumeration", description: "Distinguir contas validas por diferencas de tempo ou comportamento de resposta", duration: "1-3 dias", mitigations: ["Tempo de resposta constante", "Rate limiting em reset", "Monitorar tentativas de reset"] },
+      { order: 3, technique: "W040", action: "Account takeover", description: "Usar um token de recuperacao comprometido para assumir a conta", duration: "Instantaneo", mitigations: ["Invalidar token apos uso", "MFA no reset", "Alerta de mudanca de senha"] }
+    ]
+  },
+  {
+    id: "CHAIN-030",
+    name: "Type Juggling -> Authorization Bypass -> Privilege Escalation",
+    description: "Bypass de verificacoes de permissao causado por coercao de tipos em parametros controlados.",
+    entry: {
+      label: "Comparacao fraca de tipo em checagem de permissao",
+      description: "O ponto de partida e uma validacao que compara um valor do usuario com um esperado usando comparacao fraca (ex.: PHP '0' == false, '1abc' == 1). O atacante envia um valor que passa na checagem mas nao e o esperado."
+    },
+    techniques: ["W080", "W015", "W058"],
+    difficulty: "Intermediario",
+    timeframe: "1-3 semanas",
+    impact: "Privilege Escalation - Acesso a funcoes administrativas",
+    steps: [
+      { order: 1, technique: "W080", action: "Type coercion discovery", description: "Identificar comparacoes fracas em roles, IDs, flags ou parametros booleanos", duration: "1-4 dias", mitigations: ["Usar comparacao estrita (===)", "Validar tipo antes de comparar", "Revisar checagens de permissao"] },
+      { order: 2, technique: "W015", action: "Authorization bypass", description: "Enviar valores ambivalentes para contornar verificacoes server-side", duration: "1-3 dias", mitigations: ["Validar autorizacao no backend", "Nao confiar em parametros de role", "Auditar decisoes de acesso"] },
+      { order: 3, technique: "W058", action: "Admin panel access", description: "Acessar funcionalidades administrativas liberadas pelo bypass", duration: "Instantaneo", mitigations: ["MFA no painel admin", "IP allowlist para admin", "Monitorar acessos a funcoes admin"] }
+    ]
+  },
+  {
+    id: "CHAIN-031",
+    name: "Rate Limit Bypass -> API Scraping -> Data Exfiltration",
+    description: "Contorno de controles de volume para extrair dados em escala por API.",
+    entry: {
+      label: "Rate limit baseado em IP ou header controlavel",
+      description: "O ponto de partida e um rate limit que usa IP, X-Forwarded-For ou outro header controlavel pelo cliente. O atacante varia esses valores para contornar o limite e extrair dados em escala."
+    },
+    techniques: ["W086", "W017", "W060"],
+    difficulty: "Intermediario",
+    timeframe: "1-4 semanas",
+    impact: "Data Exfiltration - Extracao em larga escala",
+    steps: [
+      { order: 1, technique: "W086", action: "Rate limit evasion", description: "Variar identidade, headers, parametros e distribuicao das requisicoes", duration: "2-7 dias", mitigations: ["Rate limit por sessao/token", "Nao confiar em headers de IP", "Distribuir limites por usuario"] },
+      { order: 2, technique: "W017", action: "Automated API scraping", description: "Coletar registros, campos sensiveis ou dados de varios tenants", duration: "1-2 semanas", mitigations: ["Rate limiting por sessao", "Limitar campos por query", "Autorizacao por objeto"] },
+      { order: 3, technique: "W060", action: "DNS tunnel exfiltration", description: "Enviar resultados por queries DNS codificadas para um destino monitorado pelo atacante", duration: "Continuo", mitigations: ["Restringir egress DNS", "Monitorar subdominios longos", "DNS logging e alertas"] }
+    ]
+  },
+  {
+    id: "CHAIN-032",
+    name: "Compromised Dependency -> Build Execution -> Persistence",
+    description: "Abuso de dependencia de terceiros para executar codigo durante o build e manter acesso.",
+    entry: {
+      label: "Dependencia de terceiros com script de install",
+      description: "O ponto de partida e um pacote (npm, PyPI, etc.) que executa codigo no install (preinstall/postinstall). Se a dependencia for comprometida ou o registry for atacado, o codigo malicioso roda em todo build que a usa."
+    },
+    techniques: ["W006", "W051", "W050"],
+    difficulty: "Avancado",
+    timeframe: "3-8 semanas",
+    impact: "Supply Chain Compromise - Persistencia em artefatos publicados",
+    steps: [
+      { order: 1, technique: "W006", action: "Supply chain access", description: "Identificar dependencia, registry ou pipeline com controles insuficientes", duration: "1-2 semanas", mitigations: ["Auditoria de dependencias", "SBOM em todos os projetos", "Monitorar novos pacotes"] },
+      { order: 2, technique: "W051", action: "Backdoored dependency", description: "Inserir ou distribuir uma versao comprometida em um fluxo de build", duration: "1-2 semanas", mitigations: ["Lock files versionados", "SRI em pacotes", "Bloquear scripts de install"] },
+      { order: 3, technique: "W050", action: "Persistent web component", description: "Fazer o artefato implantado carregar uma funcionalidade persistente indevida", duration: "1-3 dias", mitigations: ["Proveniencia de artefatos", "Assinatura de builds", "Monitorar execucao anômala"] }
+    ]
+  },
+  {
+    id: "CHAIN-033",
+    name: "C2 over HTTP -> DNS Tunneling -> Covert Exfiltration",
+    description: "Uso de canais aparentemente normais para comando, controle e exfiltracao discreta.",
+    entry: {
+      label: "Acesso ja estabelecido + egress HTTP/DNS permitido",
+      description: "O ponto de partida e um host comprometido com saida HTTP/DNS liberada. O atacante usa trafego aparentemente normal (HTTPS, DNS) para manter C2 e exfiltrar dados sem acionar alertas de rede."
+    },
+    techniques: ["W063", "W060", "W061"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "Covert Exfiltration - Comunicacao persistente de baixa visibilidade",
+    steps: [
+      { order: 1, technique: "W063", action: "HTTP command and control", description: "Estabelecer callbacks HTTP ou HTTPS para receber comandos e enviar estado", duration: "1-5 dias", mitigations: ["Egress filtering", "Detecao de beacons (JA3)", "Whitelist de dominios de saida"] },
+      { order: 2, technique: "W060", action: "DNS tunneling", description: "Usar consultas DNS codificadas quando o canal HTTP for bloqueado ou monitorado", duration: "1-3 dias", mitigations: ["Restringir egress DNS", "Monitorar subdominios longos", "DNS logging e alertas"] },
+      { order: 3, technique: "W061", action: "HTTP metadata channel", description: "Distribuir dados em headers e metadados para dificultar a identificacao do fluxo", duration: "Continuo", mitigations: ["DLP em saidas", "Detecao de payloads em headers", "Monitorar tráfego anômalo"] }
+    ]
+  },
+  {
+    id: "CHAIN-034",
+    name: "Payload Fragmentation -> Log Evasion -> Blind Injection",
+    description: "Combinacao de fragmentacao e ofuscacao para reduzir a visibilidade de uma injecao.",
+    entry: {
+      label: "Payload dividido em multiplas requisicoes",
+      description: "O ponto de partida e a fragmentacao de um payload em partes que, isoladamente, nao disparam alertas. A remontagem acontece no backend (sessao, cache, banco), tornando a deteccao em logs convencionais dificil."
+    },
+    techniques: ["W048", "W088", "W087"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "Detection Evasion - Ataque com baixo sinal em logs convencionais",
+    steps: [
+      { order: 1, technique: "W048", action: "Payload fragmentation", description: "Dividir a entrada em requisicoes ou partes que so ganham significado na remontagem", duration: "2-7 dias", mitigations: ["Correlacionar requisicoes por sessao", "WAF com estado entre requests", "Monitorar padroes de fragmentacao"] },
+      { order: 2, technique: "W088", action: "Security event obfuscation", description: "Explorar encoding e normalizacao diferente entre aplicacao, proxy e SIEM", duration: "1-2 semanas", mitigations: ["Normalizar logs na origem", "SIEM com decodificacao", "Auditar diferenca de parsing"] },
+      { order: 3, technique: "W087", action: "Blind injection", description: "Executar a injecao usando timing, booleanos ou canal out-of-band", duration: "1-3 dias", mitigations: ["WAF com regras de blind", "Monitorar latencia anomala", "Prepared statements"] }
+    ]
+  },
+  {
+    id: "CHAIN-035",
+    name: "HTTP Methods Misconfiguration -> File Upload -> Webshell",
+    description: "Abuso de metodos HTTP perigosos ou endpoints de upload expostos para obter persistencia.",
+    entry: {
+      label: "Metodo HTTP permissivo (PUT/WebDAV) em rota publica",
+      description: "O ponto de partida e um servidor que aceita metodos como PUT, MOVE ou WebDAV em rotas publicas sem autenticacao. Isso permite gravar arquivos diretamente, sem passar por um formulario de upload."
+    },
+    techniques: ["W069", "W038", "W050"],
+    difficulty: "Intermediario",
+    timeframe: "1-3 semanas",
+    impact: "Persistent Access - Implantacao de componente indevido",
+    steps: [
+      { order: 1, technique: "W069", action: "Dangerous method discovery", description: "Identificar PUT, DELETE, WebDAV ou rotas de administracao sem protecao adequada", duration: "1-3 dias", mitigations: ["Restringir metodos HTTP", "Desabilitar WebDAV", "Autenticar rotas de escrita"] },
+      { order: 2, technique: "W038", action: "File upload abuse", description: "Testar validacao de tipo, nome, tamanho e armazenamento de arquivos", duration: "2-7 dias", mitigations: ["Validar extensao e MIME", "Renomear arquivos com hash", "Armazenar fora do diretório web"] },
+      { order: 3, technique: "W050", action: "Webshell deployment", description: "Verificar se um arquivo executavel consegue ser publicado e acessado pelo servidor", duration: "1 dia", mitigations: ["WAF com regras de webshell", "Monitorar criacao de arquivos", "Desabilitar execucao em upload"] }
+    ]
+  },
+  {
+    id: "CHAIN-036",
+    name: "SSRF -> Cloud Metadata -> Temporary Credential Abuse",
+    description: "Pivot de uma requisicao server-side para credenciais temporarias de workload cloud.",
+    entry: {
+      label: "Workload cloud com IMDSv1 (sem token)",
+      description: "O ponto de partida e um servico em cloud cujo endpoint de metadata (IMDS) nao exige token (IMDSv1). Um SSRF qualquer permite ler as credenciais temporarias do workload e usa-las contra APIs internas."
+    },
+    techniques: ["W018", "W097", "W055"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "Cloud Account Access - Acesso a recursos internos via identidade de workload",
+    steps: [
+      { order: 1, technique: "W018", action: "SSRF discovery", description: "Localizar um endpoint que aceite destinos controlados pelo usuario", duration: "1-4 dias", mitigations: ["Allowlist de destinos", "Bloquear 169.254.169.254", "Resolver DNS antes de validar"] },
+      { order: 2, technique: "W097", action: "Metadata credential theft", description: "Acessar metadata ou endpoint de identidade e obter credenciais temporarias", duration: "1-3 dias", mitigations: ["IMDSv2 com token obrigatorio", "Escopo minimo por workload", "Monitorar acessos a metadata"] },
+      { order: 3, technique: "W055", action: "Internal API abuse", description: "Usar a identidade obtida contra APIs internas com escopo excessivo", duration: "2-7 dias", mitigations: ["mTLS entre servicos", "Tokens de curta duracao", "Auditar chamadas internas"] }
+    ]
+  },
+  {
+    id: "CHAIN-037",
+    name: "Kubernetes RBAC Abuse -> Secret Access -> Container Escape",
+    description: "Escalada dentro de um cluster por permissoes RBAC e secrets expostos.",
+    entry: {
+      label: "Service account com RBAC excessivo",
+      description: "O ponto de partida e um pod que roda com uma service account que tem permissoes RBAC amplas (ex.: list secrets, create pods). O atacante usa o token do pod para escalar dentro do cluster."
+    },
+    techniques: ["W099", "W019", "W084"],
+    difficulty: "Avancado",
+    timeframe: "2-6 semanas",
+    impact: "Cluster Compromise - Acesso a workloads e possivel escape para o host",
+    steps: [
+      { order: 1, technique: "W099", action: "RBAC reconnaissance", description: "Enumerar bindings, service accounts e verbos permitidos no namespace", duration: "1-4 dias", mitigations: ["RBAC minimo por service account", "Auditar bindings", "Separar namespaces por tenant"] },
+      { order: 2, technique: "W019", action: "Secret and configuration access", description: "Acessar secrets, endpoints internos ou configuracoes expostas pelo workload", duration: "1-3 dias", mitigations: ["Encrypted secrets", "Nao montar secrets em disco", "Monitorar acesso a secrets"] },
+      { order: 3, technique: "W084", action: "Container escape", description: "Avaliar capabilities, mounts e runtime para atingir o host ou outro workload", duration: "1-2 semanas", mitigations: ["Drop capabilities", "Nao montar /var/run/docker.sock", "Runtime com seccomp/AppArmor"] }
+    ]
+  },
+  {
+    id: "CHAIN-038",
+    name: "Poisoned Container Image -> Registry Trust -> Production Persistence",
+    description: "Comprometimento da cadeia de imagens para inserir um artefato persistente no deployment.",
+    entry: {
+      label: "Registry com tags mutaveis (latest) e sem assinatura",
+      description: "O ponto de partida e um registry que aceita push com credenciais fracas e usa tags mutaveis (latest). O atacante substitui a imagem e o pipeline promove a versao comprometida para producao."
+    },
+    techniques: ["W100", "W051", "W050"],
+    difficulty: "Avancado",
+    timeframe: "3-8 semanas",
+    impact: "Supply Chain Compromise - Implantacao maliciosa em producao",
+    steps: [
+      { order: 1, technique: "W100", action: "Image or registry poisoning", description: "Identificar tags mutaveis, credenciais de push ou imagens sem assinatura", duration: "1-2 semanas", mitigations: ["Assinatura de imagens (cosign)", "Tags imutaveis por digest", "Auditar credenciais de push"] },
+      { order: 2, technique: "W051", action: "Build artifact compromise", description: "Inserir comportamento indevido no artefato que sera promovido pelo pipeline", duration: "1-2 semanas", mitigations: ["Proveniencia de artefatos", "Scan de imagens no pipeline", "Bloquear deploy sem assinatura"] },
+      { order: 3, technique: "W050", action: "Runtime persistence", description: "Manter acesso por componente persistente implantado no servico", duration: "1-3 dias", mitigations: ["Monitorar execucao anômala", "Imagens read-only", "Admission controller com politicas"] }
+    ]
+  },
+  {
+    id: "CHAIN-039",
+    name: "OIDC Validation Failure -> Cross-Tenant Access -> Privilege Escalation",
+    description: "Confusao de issuer ou audience em OIDC permitindo aceitar uma identidade de outro contexto.",
+    entry: {
+      label: "Validador OIDC que nao confere issuer/audience",
+      description: "O ponto de partida e um RP (relying party) que valida a assinatura do ID token mas nao confere issuer, audience ou nonce. Um token de outro tenant ou servico e aceito como valido."
+    },
+    techniques: ["W102", "W059", "W015"],
+    difficulty: "Avancado",
+    timeframe: "2-6 semanas",
+    impact: "Cross-Tenant Privilege Escalation - Acesso indevido a dados e funcoes",
+    steps: [
+      { order: 1, technique: "W102", action: "OIDC claim validation testing", description: "Testar issuer, audience, nonce, JWKS e separacao entre tenants", duration: "2-7 dias", mitigations: ["Validar issuer e audience", "Usar nonce anti-replay", "Auditar configuracao de JWKS"] },
+      { order: 2, technique: "W059", action: "Cross-tenant data access", description: "Usar um token aceito no tenant ou servico incorreto", duration: "1-3 dias", mitigations: ["Isolamento por tenant", "Incluir tenant_id em queries", "Testes cross-tenant"] },
+      { order: 3, technique: "W015", action: "Privilege escalation", description: "Explorar claims ou permissoes herdadas para acessar funcoes administrativas", duration: "1-3 dias", mitigations: ["Auditar claims de papel", "Nao confiar em claims de terceiros", "Validar permissao no backend"] }
+    ]
+  },
+  {
+    id: "CHAIN-040",
+    name: "SAML Federation Abuse -> Admin Session -> Data Exfiltration",
+    description: "Cadeia de identidade federada que termina em acesso autenticado e coleta de dados.",
+    entry: {
+      label: "SP que aceita assertion de IdP nao confiado",
+      description: "O ponto de partida e um service provider que valida a assinatura SAML mas nao confere o IdP de origem ou o mapeamento de atributos. Uma assertion forjada de um IdP nao confiado e aceita como admin."
+    },
+    techniques: ["W101", "W040", "W017"],
+    difficulty: "Avancado",
+    timeframe: "2-6 semanas",
+    impact: "Federated Account Compromise - Acesso a dados por sessao SSO",
+    steps: [
+      { order: 1, technique: "W101", action: "SAML trust validation testing", description: "Verificar assinatura, issuer, audience, recipient e protecao contra replay", duration: "2-7 dias", mitigations: ["Validar IdP de origem", "Assinatura de assertion", "Auditar mapeamento de atributos"] },
+      { order: 2, technique: "W040", action: "Authenticated session access", description: "Obter ou criar uma sessao com identidade privilegiada", duration: "Instantaneo apos autenticacao", mitigations: ["MFA em sessoes admin", "Sessao curta para admin", "Monitorar sessoes privilegiadas"] },
+      { order: 3, technique: "W017", action: "API data collection", description: "Coletar dados disponiveis para a sessao sem controles por objeto adequados", duration: "1-7 dias", mitigations: ["DLP em saidas", "Auditar queries de dados", "Limitar campos por query"] }
+    ]
+  },
+  {
+    id: "CHAIN-041",
+    name: "Webhook Replay -> SSRF -> Internal API Abuse",
+    description: "Repeticao de eventos ou destino de webhook controlavel para atingir servicos internos.",
+    entry: {
+      label: "Webhook com destino controlavel e sem validacao de replay",
+      description: "O ponto de partida e um webhook cujo destino (URL) pode ser alterado pelo usuario e que nao valida nonce/timestamp. O atacante replays o evento ou redireciona o destino para um endereco interno."
+    },
+    techniques: ["W106", "W018", "W055"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "Internal Service Access - Acesso a APIs confiadas pelo backend",
+    steps: [
+      { order: 1, technique: "W106", action: "Webhook signature and replay testing", description: "Avaliar HMAC, nonce, timestamp, retries e allowlist de destinos", duration: "1-4 dias", mitigations: ["HMAC com nonce unico", "Timestamp com janela curta", "Allowlist de destinos"] },
+      { order: 2, technique: "W018", action: "SSRF through webhook", description: "Induzir o consumidor a fazer requisicoes para enderecos internos", duration: "2-7 dias", mitigations: ["Bloquear IPs internos", "Resolver DNS antes de validar", "Allowlist de destinos"] },
+      { order: 3, technique: "W055", action: "Internal API abuse", description: "Usar confianca entre servicos para acessar endpoints internos", duration: "1-3 dias", mitigations: ["mTLS entre servicos", "Tokens de curta duracao", "Auditar chamadas internas"] }
+    ]
+  },
+  {
+    id: "CHAIN-042",
+    name: "LLM Indirect Injection -> Tool Abuse -> Cross-Tenant Leakage",
+    description: "Documento ou pagina maliciosa manipula um agente para executar ferramenta fora do escopo e expor contexto.",
+    entry: {
+      label: "Conteudo recuperado pelo agente com instrucoes ocultas",
+      description: "O ponto de partida e um documento, pagina ou email processado por um agente LLM que contem instrucoes ocultas (ex.: texto branco, HTML comments). O agente executa ferramentas fora do escopo sem o usuario saber."
+    },
+    techniques: ["W107", "W105", "W108"],
+    difficulty: "Avancado",
+    timeframe: "2-6 semanas",
+    impact: "AI Data Exposure - Vazamento de dados e acao nao autorizada por agente",
+    steps: [
+      { order: 1, technique: "W107", action: "Indirect prompt injection", description: "Inserir instrucoes em conteudo recuperado pelo agente", duration: "1-2 semanas", mitigations: ["Sanitizar conteudo recuperado", "Separar instrucoes de dados", "Auditar acoes do agente"] },
+      { order: 2, technique: "W105", action: "Object authorization bypass", description: "Fazer a ferramenta consultar objetos, endpoints ou tenants fora do escopo", duration: "2-7 dias", mitigations: ["Autorizacao por objeto", "Isolamento por tenant", "Auditar chamadas de ferramenta"] },
+      { order: 3, technique: "W108", action: "Embedding and context extraction", description: "Extrair documentos, embeddings ou contexto sensivel nas respostas", duration: "1-3 dias", mitigations: ["DLP em respostas", "Limitar contexto por tenant", "Auditar embeddings"] }
+    ]
+  },
+  {
+    id: "CHAIN-043",
+    name: "SCIM Provisioning Abuse -> MFA Recovery -> Account Takeover",
+    description: "Manipulacao do ciclo de vida de identidade combinada com recuperacao de MFA.",
+    entry: {
+      label: "API SCIM com credenciais de service account fracas",
+      description: "O ponto de partida e uma API de provisionamento (SCIM) autenticada por service account com credenciais fracas ou escopo excessivo. O atacante cria/reativa usuarios e altera atributos de identidade."
+    },
+    techniques: ["W103", "W104", "W040"],
+    difficulty: "Avancado",
+    timeframe: "2-5 semanas",
+    impact: "Identity Takeover - Persistencia por provisionamento e recovery",
+    steps: [
+      { order: 1, technique: "W103", action: "SCIM lifecycle abuse", description: "Criar, reativar ou alterar atributos de um usuario por API de provisionamento", duration: "2-7 dias", mitigations: ["Credenciais fortes para SCIM", "Auditar operacoes de provisionamento", "Separar service accounts por tenant"] },
+      { order: 2, technique: "W104", action: "MFA recovery abuse", description: "Explorar enrollment ou fator alternativo para assumir a identidade", duration: "1-4 dias", mitigations: ["MFA no recovery", "Auditar mudancas de fator", "Alertar em mudancas de MFA"] },
+      { order: 3, technique: "W040", action: "Account takeover", description: "Estabelecer sessao e manter acesso antes da reconciliacao do IdP", duration: "Instantaneo", mitigations: ["Reconciliacao frequente", "Monitorar sessoes novas", "MFA em todos os acessos"] }
     ]
   }
 ];

@@ -212,6 +212,8 @@ function openPanel(tech, tactic, sub) {
       <div class="panel-section-title">Mitigações</div>
       <div class="tag-list">${tech.mitigations.map(m=>`<span class="tag green">${m}</span>`).join('')}</div>
     </div>
+    ${tech.detection ? `<div class="panel-section"><div class="panel-section-title">Detecção e telemetria</div><div class="tag-list">${tech.detection.map(d=>`<span class="tag blue">${d}</span>`).join('')}</div></div>` : ''}
+    ${tech.tools ? `<div class="panel-section"><div class="panel-section-title">Ferramentas e referências operacionais</div><div class="tag-list">${tech.tools.map(tool=>`<span class="tag">${tool}</span>`).join('')}</div></div>` : ''}
     ${tech.references.length ? `<div class="panel-section">
       <div class="panel-section-title">Referências</div>
       <div class="tag-list">${tech.references.map(r=>{
