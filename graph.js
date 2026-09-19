@@ -278,6 +278,8 @@ function draw() {
     if (!source || !target || (source.hidden && target.hidden)) return;
     const a = toScreen(source), b = toScreen(target);
     const active = graphState.path.includes(edge.source) && graphState.path.includes(edge.target) && graphState.path.indexOf(edge.target) === graphState.path.indexOf(edge.source) + 1;
+    const focusedPath = graphState.activeChain || graphState.path.length > 1;
+    if (focusedPath && !active) return;
     ctx.strokeStyle = active ? '#a78bfa' : 'rgba(167,139,250,0.22)';
     ctx.lineWidth = active ? 3 : 1;
     drawArrow(a.x, a.y, b.x, b.y, source.radius * graphState.scale, active);
